@@ -37,29 +37,29 @@ analysis or convolution with matched filter model of the heart cycle. The algori
 be developed and tested in MATLAB. The best one will be selected for use in objective 4. 
 
 3. Conducting experiments including: 
-− Testing the measurement at different chest-to-antenna distances. This will allow 
+	- Testing the measurement at different chest-to-antenna distances. This will allow 
 to check the distance capabilities of the device. 
-− Measurement of vital signs from different sides of the body, in particular from the 
+	- Measurement of vital signs from different sides of the body, in particular from the 
 front, from the back side and measurement of the heartbeat when the beam is 
 directed at the carotid artery. The experiment will indicate the best measurement 
 perspective for specific applications and the possibility of using alternative 
 perspectives. 
-− Simultaneous measurement of vital signs for several people located in slightly 
+	- Simultaneous measurement of vital signs for several people located in slightly 
 different positions relative to the radar. In particular, at different distances from 
 the antenna and at similar azimuth, and at different azimuths and the same 
 distance from the antenna. The aim of the experiment is to test the distance 
 resolution due to the FMCW signal capabilities and the angular resolution due to 
 beam steering. 
-− Measurement of vital signs in a person wearing clothes of different thickness and 
+	- Measurement of vital signs in a person wearing clothes of different thickness and 
 without clothes. The experiment will allow to assess the influence of such 
 obstacles on the measurement, in order to indicate limitations for some 
 applications. 
-− Measurement during various states of body activity, especially after exercise, in a 
+	- Measurement during various states of body activity, especially after exercise, in a 
 relaxed state and during sleep. Additionally, heart activity will be measured during 
 held breathing to obtain a reference signal. The experiment will show how the 
 intensity of vital signs affects the signal-to-noise ratio and the ability to detect 
 heart and respiratory cycles. 
-− Attempt to measure a human running in place/on a treadmill or performing other 
+	- Attempt to measure a human running in place/on a treadmill or performing other 
 activities such as typing on a laptop or talking. The experiment will show the 
 limitations associated with random body movements introducing noise in vital 
 signs signatures. 
