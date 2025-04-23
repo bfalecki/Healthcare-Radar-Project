@@ -2,7 +2,7 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 
-load("phaser_rec_19-Mar-2025_10-07-35_machanie_reka2.mat")
+load("phaser_rec_20-Mar-2025_13-41-35.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
@@ -10,8 +10,10 @@ data = data1; % data1 / data2
 
 c = physconst("LightSpeed");
 
-% addpath(genpath("C:\Users\bfalecki\Documents\radarprfdetection\scripts"))
+addpath(genpath("C:\Users\bfalecki\Documents\radarprfdetection\scripts"))
 addpath(genpath("Phaser-Control-with-MATLAB")) % <-- path to https://github.com/mathworks/Phaser-Control-with-MATLAB/tree/main
+
+
 
 %% Create a range doppler plot
 rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
@@ -35,29 +37,55 @@ figure(24)
 imagesc(db(RD(1:20,:)))
 ax = gca;
 ax.YDir = "normal";
+colorbar
+
+figure(22)
+imagesc(db(RT(1:20,:)))
+ax = gca;
+ax.YDir = "normal";
+colorbar
+
+
+
 
 %% wydobycie jednowymiarowego przebiegu
 range_cell = 8;
 
 signal_extracted = RT(range_cell,:);
 
-% signal_extracted_flt = highpass(signal_extracted, 0.02, "ImpulseResponse","fir");
+freq_start = 0.03;
+freq_end = 0.03;
 
-% figure(450)
-% plotxZ(signal_extracted)
+signal_extracted_flt = lowpass(signal_extracted, freq_end, "ImpulseResponse","auto");
+% signal_extracted_flt = highpass(signal_extracted_flt, freq_start, "ImpulseResponse","auto");
 
-win_len = 200;
-win = gausswin(win_len,5);
+
+
+
+figure(450)
+plotxZ(signal_extracted)
+
+
+win_len = 800;
+win = kaiser(win_len,20);
 figure(500)
-[sp,F,T] = stft(signal_extracted,prf,"Window",win,"OverlapLength",round(win_len*0.9));
+[sp,F,T] = stft(signal_extracted,prf, "FFTLength",800,"Window",win,"OverlapLength",round(win_len*0.99));
 velocity = c*F/fc/2;
 imagesc(T,velocity,db(sp))
+colorbar
 ax = gca;
 ax.YDir = "normal";
 xlabel("Time [s]")
 ylabel("Doppler vel. [m/s]")
 %% demodulacja
 phase = unwrap(angle(signal_extracted));
-phase_diff = diff(phase);
+phase_flt = lowpass(phase,0.03,"ImpulseResponse","fir");
+phase_diff = diff(phase_flt);
 figure(310)
+plot(phase)
+hold
+plot(phase_flt)
+hold
+
+figure(311)
 plot(phase_diff)

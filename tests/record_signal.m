@@ -51,7 +51,7 @@ rx.SamplingRate = fs;
 
 % Setup transmitter
 tx.SamplingRate = fs;
-tx.EnabledChannels = [1,2];
+tx.EnabledChannels = [1]; % było [1,2]
 tx.CenterFrequency = rx.CenterFrequency;
 tx.AttenuationChannel0 = -3;
 tx.AttenuationChannel1 = -3;
@@ -61,29 +61,7 @@ tx.DataSource = "DMA";
 % This is where you could create some modulation scheme, we just use a
 % constant amplitude baseband signal.
 amp = 0.9 * 2^15;
-txWaveform = amp*ones(nSamples,2);
-
-%% Setup the Phaser
-% Setup the pluto
-[rx,tx] = setupPluto();
-
-% Setup pluto sampling
-rx.SamplesPerFrame = nSamples;
-rx.SamplingRate = fs;
-
-% Setup transmitter
-tx.SamplingRate = fs;
-tx.EnabledChannels = [1,2];
-tx.CenterFrequency = rx.CenterFrequency;
-tx.AttenuationChannel0 = -3;
-tx.AttenuationChannel1 = -3;
-tx.EnableCyclicBuffers = true;
-tx.DataSource = "DMA";
-
-% This is where you could create some modulation scheme, we just use a
-% constant amplitude baseband signal.
-amp = 0.9 * 2^15;
-txWaveform = amp*ones(nSamples,2);
+txWaveform = amp*ones(nSamples,1); % było ,2);
 
 %% Setup the Phaser
 
@@ -117,11 +95,11 @@ bf_TDD.StartupDelay = 0;
 bf_TDD.SyncReset = 0;
 bf_TDD.FrameLength = tpulse*1e3;  %frame length in ms
 bf_TDD.BurstCount = nPulses; % Number of pulses in a CPI
-bf_TDD.Ch0Enable = 1;
+bf_TDD.Ch0Enable = 0; % było 1
 bf_TDD.Ch0Polarity = 0;
 bf_TDD.Ch0On = tStartRamp; % Time to start PLL sweep in a frame
 bf_TDD.Ch0Off = tsweep; % this doesn't need to be tsweep, this just ensures control pulse ends before next PLL pulse starts
-bf_TDD.Ch1Enable = 1;
+bf_TDD.Ch1Enable = 0; % było 1
 bf_TDD.Ch1Polarity = 0;
 bf_TDD.Ch1On = tStartCollection; % Time to start data collection in a frame
 bf_TDD.Ch1Off = tStartCollection+0.1;
@@ -165,6 +143,10 @@ rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
 ax = axes(figure);
 time = zeros(1, nCaptures);
 tic
+times_pre_tx = [];
+times_post_tx = [];
+times_post_burse = [];
+times_post_rx = [];
 for i = 1:nCaptures
     idx_start = size_data_dim2*(i-1)+1;
     idx_end = idx_start +size_data_dim2-1;
@@ -172,9 +154,9 @@ for i = 1:nCaptures
     raw_data = captureTransmitWaveform(rx,tx,bf,txWaveform);
     time(i) = toc;
 
-    % Remove excess data, rearrange into nSamples x nPulses
+    % % Remove excess data, rearrange into nSamples x nPulses
     data1(:,idx_start:idx_end) = arrangePulseData(raw_data(:,1),rx,bf,bf_TDD);
-    data2(:,idx_start:idx_end) = arrangePulseData(raw_data(:,2),rx,bf,bf_TDD);
+    % data2(:,idx_start:idx_end) = arrangePulseData(raw_data(:,2),rx,bf,bf_TDD);
     % 
     % % Plot the data
     % rd.plotResponse(data1(:,idx_start:idx_end));
@@ -187,7 +169,8 @@ end
 file_suffix = string(datetime("now"));
 file_suffix = strrep(file_suffix, ":", "-");
 file_suffix = strrep(file_suffix, " ", "_");
-save("phaser_rec_"+  file_suffix + ".mat", "data1","data2", "fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange")
+save("phaser_rec_"+  file_suffix + ".mat", "data1","data2", "fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
+    "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx")
 %% 
 
 % Create a range doppler plot
