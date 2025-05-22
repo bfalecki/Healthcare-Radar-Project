@@ -18,8 +18,8 @@ v_max_heart = displ_max_heart * 2*pi * f_heart_osc; % maximum heartbeat-related 
 c = physconst("LightSpeed");
 fc = 10e9; % carrier frequency [Hz]
 lambda = c/fc; % wavelength [m]
-PRF = 5000; % pulse repetition frequency [Hz]
-SNR = 20; % signal-to-noise ratio [dB]
+PRF = 10000; % pulse repetition frequency [Hz]
+SNR = 10; % signal-to-noise ratio [dB]
 max_fd = PRF/2; % max unambiguous Doppler frequency [Hz]
 max_vd = max_fd/fc * c/2; % max unambiguous Doppler velocity [m/s]
 
@@ -53,16 +53,16 @@ radar_signal_raw = awgn(exp(1j*phase_signal), SNR);
 % title("Raw baseband signal")
 % xlabel("time [s]")
 
-% % spectrogram
-% win_width = 0.1; % window FWHM [s]
-% win_margin = 4; % x times FWHM each side
-% window = get_gauss_win(win_width, PRF, win_margin);
-% overlap_factor = 0.99;
-% [raw_stft,F_ax,T_ax] = stft(radar_signal_raw, PRF,"Window",window,"OverlapLength",round(overlap_factor*length(window)));
-% figure(20)
-% V_ax = -F_ax/2*c/fc;
-% imagesc(T_ax,V_ax,db(raw_stft));
-% set(gca,'YDir','normal')
+% spectrogram
+win_width = 0.2; % window FWHM [s]
+win_margin = 4; % x times FWHM each side
+window = get_gauss_win(win_width, PRF, win_margin);
+overlap_factor = 0.99;
+[raw_stft,F_ax,T_ax] = stft(radar_signal_raw, PRF,"Window",window,"OverlapLength",round(overlap_factor*length(window)));
+figure(20)
+V_ax = -F_ax/2*c/fc;
+imagesc(T_ax,V_ax,db(raw_stft));
+set(gca,'YDir','normal')
 
 
 %% extraction of the signal
@@ -70,19 +70,19 @@ phase_extr = unwrap(angle(radar_signal_raw));
 fd_extr = phase2fdoppler(phase_extr, PRF);
 vd_extr = fdoppler2vel(fd_extr,fc);
 
-decim_rank = floor(PRF/200);
+decim_rank = floor(PRF/500);
 vd_extr_decim = resample(vd_extr, 1,decim_rank);
 
 % reducing bandwidth to gain SNR
 lowpass_freq = 15; % Hz
-highpass_freq = 5; % Hz
+% highpass_freq = 5; % Hz
 vd_extr_filt = lowpass(vd_extr_decim, lowpass_freq/PRF*decim_rank, "ImpulseResponse","iir");
-vd_extr_filt = highpass(vd_extr_filt, highpass_freq/PRF*decim_rank, "ImpulseResponse","iir");
+% vd_extr_filt = highpass(vd_extr_filt, highpass_freq/PRF*decim_rank, "ImpulseResponse","iir");
 
 
 % extracted vs input
 figure(2)
-plot(t, [heartbeat_signal_vel; [resample(vd_extr_filt, decim_rank, 1) 0]])
+plot(t, [vital_signs_signal_vel; [resample(vd_extr_filt, decim_rank, 1) 0]])
 legend("Input", "Extracted")
 
 
