@@ -18,8 +18,8 @@ v_max_heart = displ_max_heart * 2*pi * f_heart_osc; % maximum heartbeat-related 
 c = physconst("LightSpeed");
 fc = 10e9; % carrier frequency [Hz]
 lambda = c/fc; % wavelength [m]
-PRF = 5000; % pulse repetition frequency [Hz]
-SNR = 20; % signal-to-noise ratio [dB]
+PRF = 2000; % pulse repetition frequency [Hz]
+SNR = 40; % signal-to-noise ratio [dB]
 max_fd = PRF/2; % max unambiguous Doppler frequency [Hz]
 max_vd = max_fd/fc * c/2; % max unambiguous Doppler velocity [m/s]
 
@@ -74,7 +74,7 @@ decim_rank = floor(PRF/200);
 vd_extr_decim = resample(vd_extr, 1,decim_rank);
 
 % reducing bandwidth to gain SNR
-lowpass_freq = 15; % Hz
+lowpass_freq = 50; % Hz
 highpass_freq = 5; % Hz
 vd_extr_filt = lowpass(vd_extr_decim, lowpass_freq/PRF*decim_rank, "ImpulseResponse","iir");
 vd_extr_filt = highpass(vd_extr_filt, highpass_freq/PRF*decim_rank, "ImpulseResponse","iir");

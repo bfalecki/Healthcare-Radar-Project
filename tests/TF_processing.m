@@ -2,7 +2,7 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 
-load("phaser_rec_20-Mar-2025_13-41-35.mat")
+load("phaser_rec_30-Apr-2025_20-02-14_poss_heartbeat.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
