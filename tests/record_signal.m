@@ -14,11 +14,11 @@ warning('off','MATLAB:system:ObsoleteSystemObjectMixin')
 
 
 save_path = "rec" + filesep;
-do_save = 0;
+do_save = 1;
 
 maxRange = 10; % 100 m max range, use the system in a room
 rangeResolution = 1/3; % Range resolution of 1/3 m
-maxSpeed = 10; % Max speed we expect is 5 m/s, somebody moving towards the radar
+maxSpeed = 10; % Max speed we expect is 5 m/s, somebody moving towards the radar (1 2 3 5 10)
 speedResolution = 1/100; % Speed resolution of 1/2 m/s
 
 %% Determine some parameter values based on system requirements, based on the
@@ -53,7 +53,7 @@ nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a P
 % fs = max(ceil(2*fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
 % nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a PRP
 
-nCaptures = 5; % ilość złożonych frames
+nCaptures = 8; % ilość złożonych frames
 
 if(nSamples > 2^20)
     error("Too much nPulses per frame (nSamples > 2^20)")
@@ -164,10 +164,10 @@ for i = 1:nCaptures
     % data2(:,idx_start:idx_end) = arrangePulseData(raw_data(:,2),rx,bf,bf_TDD);
     % 
     % % Plot the data
-    rd.plotResponse(data1(:,idx_start:idx_end));
-    ylim(ax,[0,maxRange]);
-    xlim(ax,[-maxSpeed,maxSpeed]); 
-    drawnow;
+    % rd.plotResponse(data1(:,idx_start:idx_end));
+    % ylim(ax,[0,maxRange]);
+    % xlim(ax,[-maxSpeed,maxSpeed]); 
+    % drawnow;
 end
 
 
