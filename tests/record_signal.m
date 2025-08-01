@@ -5,16 +5,21 @@
 % which can be found here
 % https://github.com/mathworks/Phaser-Control-with-MATLAB/tree/main
 
+
 %% Clear, close figures, turn off warnings
-% clear; close all;
+clear; close all;
 warning('off','MATLAB:system:ObsoleteSystemObjectMixin')
 
 %% Put some requirements on the system
 
+
+save_path = "rec" + filesep;
+do_save = 0;
+
 maxRange = 10; % 100 m max range, use the system in a room
 rangeResolution = 1/3; % Range resolution of 1/3 m
-maxSpeed = 0.7; % Max speed we expect is 5 m/s, somebody moving towards the radar
-speedResolution = maxSpeed/60; % Speed resolution of 1/2 m/s
+maxSpeed = 10; % Max speed we expect is 5 m/s, somebody moving towards the radar
+speedResolution = 1/100; % Speed resolution of 1/2 m/s
 
 %% Determine some parameter values based on system requirements, based on the
 % following example - https://www.mathworks.com/help/radar/ug/automotive-adaptive-cruise-control-using-fmcw-technology.html
@@ -23,16 +28,31 @@ fc = 10e9; % rf carrier frequency is ~10 GHz
 lambda = physconst("LightSpeed") / fc;
 rampbandwidth = ceil(rangeres2bw(rangeResolution)/1e6)*1e6; % get ramp bandwidth for required range resolution, conviniently this brings us close to the maximum for the Phaser
 fmaxdop = speed2dop(2*maxSpeed,lambda); % Maximum doppler shift depends on max speed we want to resolve, multiply by 2 for 2 way propagation
-% prf = 2*fmaxdop; % PRF needs to be set to unambiguously resolve max speed
-% nPulses = ceil(2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
-prf = 500; % can be defined independently
-nPulses = 2*prf; % one frame can handle up to 2^20 samples which is about 2 seconds on minimum fs
+prf = 2*fmaxdop; % PRF needs to be set to unambiguously resolve max speed
+nPulses = ceil(2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
 tpulse = ceil((1/prf)*1e3)*1e-3; % Pulse time, round up to the nearest ms
 tsweep = getFMCWSweepTime(tpulse,tpulse); % Sweep across as much of the pulse as possible
 sweepslope = rampbandwidth / tsweep; % Slope of the FMCW sweep
 fmaxbeat = sweepslope * range2time(maxRange); % Max beat frequency in this case we only consider the f offset due to range delay. With faster targets, you need to consider doppler
 fs = max(ceil(2*fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
 nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a PRP
+
+
+% fc = 10e9; % rf carrier frequency is ~10 GHz
+% lambda = physconst("LightSpeed") / fc;
+% rampbandwidth = ceil(rangeres2bw(rangeResolution)/1e6)*1e6; % get ramp bandwidth for required range resolution, conviniently this brings us close to the maximum for the Phaser
+% % fmaxdop = speed2dop(2*maxSpeed,lambda); % Maximum doppler shift depends on max speed we want to resolve, multiply by 2 for 2 way propagation
+% % prf = 2*fmaxdop; % PRF needs to be set to unambiguously resolve max speed
+% % nPulses = ceil(2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
+% prf = 100; % can be defined independently
+% nPulses = round(0.5*prf); % one frame can handle up to 2^20 samples which is about 2 seconds on minimum fs
+% tpulse = ceil((1/prf)*1e3)*1e-3; % Pulse time, round up to the nearest ms
+% tsweep = getFMCWSweepTime(tpulse,tpulse); % Sweep across as much of the pulse as possible
+% sweepslope = rampbandwidth / tsweep; % Slope of the FMCW sweep
+% fmaxbeat = sweepslope * range2time(maxRange); % Max beat frequency in this case we only consider the f offset due to range delay. With faster targets, you need to consider doppler
+% fs = max(ceil(2*fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
+% nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a PRP
+
 nCaptures = 5; % ilość złożonych frames
 
 if(nSamples > 2^20)
@@ -41,7 +61,7 @@ end
 
 
 %% Setup pluto
-% 
+
 % Setup the pluto
 [rx,tx] = setupPluto();
 
@@ -51,9 +71,9 @@ rx.SamplingRate = fs;
 
 % Setup transmitter
 tx.SamplingRate = fs;
-tx.EnabledChannels = [1]; % było [1,2]
+tx.EnabledChannels = [1,2];
 tx.CenterFrequency = rx.CenterFrequency;
-tx.AttenuationChannel0 = -3;
+tx.AttenuationChannel0 = -80;
 tx.AttenuationChannel1 = -3;
 tx.EnableCyclicBuffers = true;
 tx.DataSource = "DMA";
@@ -61,7 +81,7 @@ tx.DataSource = "DMA";
 % This is where you could create some modulation scheme, we just use a
 % constant amplitude baseband signal.
 amp = 0.9 * 2^15;
-txWaveform = amp*ones(nSamples,1); % było ,2);
+txWaveform = amp*ones(nSamples,2);
 
 %% Setup the Phaser
 
@@ -95,11 +115,11 @@ bf_TDD.StartupDelay = 0;
 bf_TDD.SyncReset = 0;
 bf_TDD.FrameLength = tpulse*1e3;  %frame length in ms
 bf_TDD.BurstCount = nPulses; % Number of pulses in a CPI
-bf_TDD.Ch0Enable = 0; % było 1
+bf_TDD.Ch0Enable = 1;
 bf_TDD.Ch0Polarity = 0;
 bf_TDD.Ch0On = tStartRamp; % Time to start PLL sweep in a frame
-bf_TDD.Ch0Off = tsweep; % this doesn't need to be tsweep, this just ensures control pulse ends before next PLL pulse starts
-bf_TDD.Ch1Enable = 0; % było 1
+bf_TDD.Ch0Off = tStartRamp+0.1;
+bf_TDD.Ch1Enable = 1;
 bf_TDD.Ch1Polarity = 0;
 bf_TDD.Ch1On = tStartCollection; % Time to start data collection in a frame
 bf_TDD.Ch1Off = tStartCollection+0.1;
@@ -110,22 +130,7 @@ bf_TDD.Ch2Off = 0.1;
 bf_TDD.Enable = 1;
 
 
-% %% pluto, phaser, TDD
-% 
-% % See fmcw demo for these setup steps
-% [rx,tx,bf,bf_TDD,model] = setupFMCWRadar(fc,fs,tpulse,tsweep,nPulses,rampbandwidth);
-% 
-% % Clear cache
-% rx();
-% 
-% % Use constant amplitude baseband transmit data
-% amp = 0.9 * 2^15;
-% txWaveform = amp*ones(rx.SamplesPerFrame,2);
-
-
 %% Trigger TDD and Plot
-
-
 
 rx(); % wyczyszczenie bufora jest konieczne
 
@@ -151,17 +156,18 @@ for i = 1:nCaptures
     idx_start = size_data_dim2*(i-1)+1;
     idx_end = idx_start +size_data_dim2-1;
     % capture data
-    raw_data = captureTransmitWaveform(rx,tx,bf,txWaveform);
+    raw_data = captureTransmitWf_timeStamps(rx,tx,bf,txWaveform);
     time(i) = toc;
 
     % % Remove excess data, rearrange into nSamples x nPulses
-    data1(:,idx_start:idx_end) = arrangePulseData(raw_data(:,1),rx,bf,bf_TDD);
+    data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data,rx,bf,bf_TDD);
     % data2(:,idx_start:idx_end) = arrangePulseData(raw_data(:,2),rx,bf,bf_TDD);
     % 
     % % Plot the data
-    % rd.plotResponse(data1(:,idx_start:idx_end));
-    % xlim(ax,[-maxSpeed,maxSpeed]); ylim(ax,[0,maxRange]);
-    % drawnow;
+    rd.plotResponse(data1(:,idx_start:idx_end));
+    ylim(ax,[0,maxRange]);
+    xlim(ax,[-maxSpeed,maxSpeed]); 
+    drawnow;
 end
 
 
@@ -169,8 +175,10 @@ end
 file_suffix = string(datetime("now"));
 file_suffix = strrep(file_suffix, ":", "-");
 file_suffix = strrep(file_suffix, " ", "_");
-save("phaser_rec_"+  file_suffix + ".mat", "data1","data2", "fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
-    "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx")
+if(do_save)
+    save(save_path + "phaser_rec_"+  file_suffix + ".mat", "data1", "fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
+        "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx")
+end
 %% 
 
 % Create a range doppler plot

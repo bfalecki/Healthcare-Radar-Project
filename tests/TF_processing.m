@@ -49,21 +49,21 @@ colorbar
 
 
 %% wydobycie jednowymiarowego przebiegu
-range_cell = 8;
+range_cell = 2;
 
 signal_extracted = RT(range_cell,:);
 
-freq_start = 0.03;
-freq_end = 0.03;
-
-signal_extracted_flt = lowpass(signal_extracted, freq_end, "ImpulseResponse","auto");
+% freq_start = 0.03;
+% freq_end = 0.03;
+% 
+% signal_extracted_flt = lowpass(signal_extracted, freq_end, "ImpulseResponse","auto");
 % signal_extracted_flt = highpass(signal_extracted_flt, freq_start, "ImpulseResponse","auto");
 
 
 
 
 figure(450)
-plotxZ(signal_extracted)
+plot(real(signal_extracted))
 
 
 win_len = 800;
@@ -78,14 +78,27 @@ ax.YDir = "normal";
 xlabel("Time [s]")
 ylabel("Doppler vel. [m/s]")
 %% demodulacja
-phase = unwrap(angle(signal_extracted));
-phase_flt = lowpass(phase,0.03,"ImpulseResponse","fir");
-phase_diff = diff(phase_flt);
-figure(310)
-plot(phase)
-hold
-plot(phase_flt)
-hold
+% phase = unwrap(angle(signal_extracted));
+% phase_flt = lowpass(phase,0.03,"ImpulseResponse","fir");
+% phase_diff = diff(phase_flt);
 
-figure(311)
-plot(phase_diff)
+% [signal_filled, time_lags_filled] = fill_signal_gaps(signal_extracted, times_post_tx, times_post_rx, prf);
+% [signal_filled, time_lags_filled] = expand_breaks(signal_extracted,prf,times_post_tx, times_post_rx);
+
+% figure(991)
+% plotZ(time_lags_filled, signal_filled)
+
+lowpass_freq=500;
+velocity = extract_heartbeat(signal_extracted,prf, fc, lowpass_freq);
+
+
+[velocity_filled, time_lags_filled] = fill_signal_gaps(velocity, times_post_tx, prf);
+
+
+figure(310)
+plot(time_lags_filled, velocity_filled)
+xlabel("Time [s]")
+ylabel("Velocity [m/s]")
+
+% figure(311)
+% plot(phase_diff)
