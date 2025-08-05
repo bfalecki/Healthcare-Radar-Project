@@ -2,7 +2,7 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 
-load("phaser_rec_30-Apr-2025_20-02-14_poss_heartbeat.mat")
+load("phaser_rec_11-Jun-2025_14-08-17_max1mps.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
@@ -49,7 +49,7 @@ colorbar
 
 
 %% wydobycie jednowymiarowego przebiegu
-range_cell = 2;
+range_cell = 5;
 
 signal_extracted = RT(range_cell,:);
 

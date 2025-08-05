@@ -1,4 +1,4 @@
-function [signal_filled, t, segment_duration] = fill_signal_gaps(signal, time_starts, fs)
+function [signal_filled, t, segment_duration, start_samples, end_samples] = fill_signal_gaps(signal, time_starts, fs)
     % Liczba segmentów
     num_segments = length(time_starts);
 
@@ -13,9 +13,15 @@ function [signal_filled, t, segment_duration] = fill_signal_gaps(signal, time_st
 
     % Wstawianie danych
     current_idx = 1;
+    start_samples = zeros(1, length(num_segments));
+    end_samples = zeros(1, length(num_segments));
     for i = 1:num_segments
+        
         start_sample = round(time_starts(i) * fs) + 1;
+        start_samples(i) = start_sample;
+
         end_sample = start_sample + samples_per_segment - 1;
+        end_samples(i) = end_sample;
 
         if current_idx + samples_per_segment - 1 > length(signal)
             warning('Niepełny ostatni segment – wstawiam tylko dostępne dane.');
