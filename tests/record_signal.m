@@ -18,7 +18,7 @@ do_save = 1;
 
 maxRange = 10; % 100 m max range, use the system in a room
 rangeResolution = 1/3; % Range resolution of 1/3 m
-maxSpeed = 10; % Max speed we expect is 5 m/s, somebody moving towards the radar (1 2 3 5 10)
+maxSpeed = 1; % Max speed we expect is 5 m/s, somebody moving towards the radar (1 2 3 5 10)
 speedResolution = 1/100; % Speed resolution of 1/2 m/s
 
 %% Determine some parameter values based on system requirements, based on the
@@ -29,7 +29,10 @@ lambda = physconst("LightSpeed") / fc;
 rampbandwidth = ceil(rangeres2bw(rangeResolution)/1e6)*1e6; % get ramp bandwidth for required range resolution, conviniently this brings us close to the maximum for the Phaser
 fmaxdop = speed2dop(2*maxSpeed,lambda); % Maximum doppler shift depends on max speed we want to resolve, multiply by 2 for 2 way propagation
 prf = 2*fmaxdop; % PRF needs to be set to unambiguously resolve max speed
-nPulses = ceil(2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
+
+frame_len = 0.2;
+nPulses = ceil(frame_len/1.5  *  2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
+            % about 1.5s recording
 tpulse = ceil((1/prf)*1e3)*1e-3; % Pulse time, round up to the nearest ms
 tsweep = getFMCWSweepTime(tpulse,tpulse); % Sweep across as much of the pulse as possible
 sweepslope = rampbandwidth / tsweep; % Slope of the FMCW sweep
@@ -53,7 +56,7 @@ nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a P
 % fs = max(ceil(2*fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
 % nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a PRP
 
-nCaptures = 8; % ilość złożonych frames
+nCaptures = round(20/(frame_len/1.5)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
 
 if(nSamples > 2^20)
     error("Too much nPulses per frame (nSamples > 2^20)")
@@ -148,16 +151,22 @@ rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
 ax = axes(figure);
 time = zeros(1, nCaptures);
 tic
-times_pre_tx = [];
-times_post_tx = [];
-times_post_burse = [];
-times_post_rx = [];
+times_pre_tx = zeros(1, nCaptures);
+times_post_tx = zeros(1, nCaptures);
+times_post_burse = zeros(1, nCaptures);
+times_post_rx = zeros(1, nCaptures);
 for i = 1:nCaptures
     idx_start = size_data_dim2*(i-1)+1;
     idx_end = idx_start +size_data_dim2-1;
     % capture data
-    raw_data = captureTransmitWf_timeStamps(rx,tx,bf,txWaveform);
+    [raw_data, times_struct] = captureTransmitWf_timeStamps(rx,tx,bf,txWaveform);
+
+    % time signatures
     time(i) = toc;
+    times_pre_tx(i) = times_struct.time_pre_tx;
+    times_post_tx(i) = times_struct.time_post_tx;
+    times_post_burse(i) = times_struct.time_post_burse;
+    times_post_rx(i) = times_struct.time_post_rx;
 
     % % Remove excess data, rearrange into nSamples x nPulses
     data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data,rx,bf,bf_TDD);

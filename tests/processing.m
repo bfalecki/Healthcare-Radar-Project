@@ -2,7 +2,7 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 
-load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat")
+load("rec"+filesep+"phaser_rec_07-Aug-2025_13-08-10_0.2s__200cm_R_spoczynek.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
@@ -53,7 +53,7 @@ colorbar
 
 
 %% wydobycie jednowymiarowego przebiegu I/Q
-range_cell = 5;
+range_cell = 9;
 
 signal_extracted = RT(range_cell,:);
 
@@ -61,7 +61,7 @@ signal_extracted = RT(range_cell,:);
 figure(450)
 [signal_filled, time_lags_filled, segment_duration, start_samples, end_samples] = ...
     fill_signal_gaps(signal_extracted, times_post_tx, prf);
-plotZ(time_lags_filled, signal_filled)
+plot(time_lags_filled, [real(signal_filled).' imag(signal_filled).'])
 xlims = [time_lags_filled(1) time_lags_filled(end)];
 xlabel("Time [s]")
 ylabel("Signal amplitude [-]")
