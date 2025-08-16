@@ -61,7 +61,7 @@ if(true_surf)
 end
 
 if(normalize == 1)
-    surf_to_plot = prep2plot(sp, 10);
+    surf_to_plot = db(sp);
 else
     surf_to_plot = sp;
 end
@@ -90,7 +90,7 @@ else
     c.Label.String = 'Amplitude';
 end
 if(~exist('clims', "var") || string(class(clims)) == "string")
-    clim_low = getQuantileMatrix(surf_to_plot, 0.05, 2000);
+    clim_low = quantile(surf_to_plot, 0.05,"all");
     clim_high = max(surf_to_plot, [], "all");
 else
     clim_low = clims(1);

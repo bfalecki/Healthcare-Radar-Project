@@ -1,28 +1,43 @@
 
 
+signal_source = "measurement"; % "measurement" / "simulation"
+
 % actual measurement
-% processing;
-% signal = velocity;
+if(signal_source == "measurement")
+    rec_file = load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat");
+    RT = fft(rec_file.data1);
+    PRF = rec_file.prf;
+    [radar_signal_raw, RT_row] = choose_RT_row(RT);
+end
+
 
 
 % simulation
-PRF = 133;
-fc = 10e9;
-VSSim = VitalSignsSimulator("SNR", 22, "PRF", PRF, 'CarrierFrequency', fc);
-[radar_signal_raw, t] = VSSim.simulate();
-% when SNR is 22 dB, we can mostly estimate heart rate with this method
-% when SNR is -5 dB, we can estimate breath rate quite good with this method
+if(signal_source == "simulation")
+    PRF = 133;
+    fc = 10e9;
+    VSSim = VitalSignsSimulator("SNR", 22, "PRF", PRF, 'CarrierFrequency', fc);
+    [radar_signal_raw, t] = VSSim.simulate();
+    % when SNR is 22 dB, we can mostly estimate heart rate with this method
+    % when SNR is -5 dB, we can estimate breath rate quite good with this method
+end
 
 %% preprocessing - decimation
-desired_fs = 20; % We want to have a sampling frequency not to high to filter out high-frequency noise,
+desired_fs = PRF; % We want to have a sampling frequency not to high to filter out high-frequency noise,
 % but not too low in order to capture heart oscilations
 % desired_fs should be 2x greater than typical heart oscillation frequency (about 8 Hz)
-[radar_signal, actual_fs, t_resampled] = set_fs(radar_signal_raw, PRF, desired_fs);
 
-% phase difference extraction
-signal = compl_diff(diff(unwrap(angle(radar_signal))));
+%%% currently works only in simulation
+% [radar_signal, actual_fs, t_resampled] = set_fs(radar_signal_raw, PRF, desired_fs);
+% 
+% % phase difference extraction
+% signal = compl_diff(diff(unwrap(angle(radar_signal))));
 
-[imf,~, info] = vmd(signal, "NumIMFs",2); % only two components: breath and heartbeat
+signal = signal_filled;
+[signal, actual_fs, t_resampled] = set_fs(signal, PRF, desired_fs);
+
+
+[imf,~, info] = vmd(signal, "NumIMFs",6); % only two components: breath and heartbeat
 disp(info.CentralFrequencies * actual_fs)
 
 xlims = [1500 2400];
@@ -42,7 +57,7 @@ close all
 
 
 figure(50)
-plot(signal)
+plot(t_resampled, signal)
 setFigSize(fig_size)
 % xlim(xlims)
 % ylim([-0.015 0.015])
@@ -51,10 +66,11 @@ setFigSize(fig_size)
 % we assume, that the first component is heartbeat, and the second is
 % breath
 
-heartbeat_signal = imf(:, 1);
+[~,hb_idx] = min(abs(info.CentralFrequencies * actual_fs - 8));
+heartbeat_signal = imf(:, hb_idx);
 
 
-env_window_width = 0.4; % seconds
+env_window_width = 0.1; % seconds
 env_window_length = round(env_window_width * actual_fs);
 hb_envelope = envelope(heartbeat_signal, env_window_length,"rms");
 
@@ -71,7 +87,7 @@ setFigSize(fig_size)
 hb_env_des_fs = 5; % more than 2x possible heart rate
 [hb_envelope_dec, hb_env_fs] = set_fs(hb_envelope, actual_fs, hb_env_des_fs);
 
-hp_freq = 0.5; % less than 0.5 Hz is removed
+hp_freq = 0.6; % less than 0.5 Hz is removed
 hb_envelope_no_offset = highpass(hb_envelope_dec, hp_freq/hb_env_fs);
 
 
@@ -120,7 +136,7 @@ ridge = tfridge(synchrosqueezed_hb_env,f_ax, 1, "NumRidges",1);
 
 % plotResult
 figure(21)
-imagesc(t_ax,f_ax,db(synchrosqueezed_hb_env))
+imagesc(t_ax,f_ax,abs(synchrosqueezed_hb_env))
 colorbar
 ax = gca;
 ax.YDir = "normal";
@@ -130,7 +146,7 @@ hold off
 title("Heart Rate [Hz]")
 
 %% breath rate extraction
-breath_signal = imf(:, 2);
+breath_signal = imf(:, end);
 figure(3)
 plot(t_resampled, breath_signal)
 
@@ -139,7 +155,7 @@ breath_des_fs = 3; % more than 2x possible breath rate (2x ~ 1.5 Hz = 3 Hz)
 [breath_dec, breath_env_fs] = set_fs(breath_signal, actual_fs, breath_des_fs);
 
 hp_freq_breath = 0.1; % less than 0.1 Hz is removed
-breath_no_offset = highpass(breath_dec, hp_freq/breath_env_fs);
+breath_no_offset = highpass(breath_dec, hp_freq_breath/breath_env_fs);
 
 breath_spectr_win_width = 4; % seconds of window applied to envelope signal
 breath_freq_per_sample = 0.02; % how precise the distribution needs to be

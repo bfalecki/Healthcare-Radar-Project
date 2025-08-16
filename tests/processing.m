@@ -2,7 +2,7 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 
-load("rec"+filesep+"phaser_rec_07-Aug-2025_13-08-10_0.2s__200cm_R_spoczynek.mat")
+load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
@@ -11,8 +11,8 @@ data = data1; % data1 / data2
 c = physconst("LightSpeed");
 
 % addpath(genpath("C:\Users\bfalecki\Documents\radarprfdetection\scripts"))
-addpath(genpath("/home/user/Documents/iFurther/radarprfdetection/scripts/"))
-addpath(genpath("Phaser-Control-with-MATLAB")) % <-- path to https://github.com/mathworks/Phaser-Control-with-MATLAB/tree/main
+% addpath(genpath("/home/user/Documents/iFurther/radarprfdetection/scripts/"))
+% addpath(genpath("Phaser-Control-with-MATLAB")) % <-- path to https://github.com/mathworks/Phaser-Control-with-MATLAB/tree/main
 
 
 
