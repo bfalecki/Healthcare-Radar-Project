@@ -30,10 +30,12 @@ function x_filled = fill_gap_ar_bidirectional(x, p)
 
     % --- model backward (z próbek po przerwą, odwrócone)
     x_after_rev = flipud(x_after);
-    [Ab, ~] = aryule(x_after_rev, p);
+    p_backward = p; 
+    p_backward(p_backward > length(x_after_rev)) = length(x_after_rev); % fix to not get error
+    [Ab, ~] = aryule(x_after_rev, p_backward);
 
     xb = zeros(gap_end-gap_start+1,1);
-    hist = x_after_rev(end:-1:end-p+1);
+    hist = x_after_rev(end:-1:end-p_backward+1);
     for k = 1:length(xb)
         xb(k) = -Ab(2:end)*hist;
         hist = [xb(k); hist(1:end-1)];

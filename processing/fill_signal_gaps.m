@@ -46,14 +46,8 @@ function [signal_filled, t, segment_duration, start_samples, end_samples, segmen
         end
     end
 
-    % get break indexes
-    segments_idxes = zeros(size(signal_filled));
-    all_idxes = 1:length(signal_filled);
-    for k = 1:length(start_samples)
-        % works as alternative
-        segments_idxes = segments_idxes + (all_idxes >= start_samples(k) & all_idxes <= end_samples(k));
-    end
-    segments_idxes = logical(segments_idxes);
+    % get segment indexes (logical)
+    segments_idxes = get_segments_idxes(start_samples,end_samples, length(signal_filled));
 
     t = (0:length(signal_filled)-1) / fs;
 end
