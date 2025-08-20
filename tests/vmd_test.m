@@ -1,6 +1,6 @@
 
 
-signal_source = "measurement"; % "measurement" / "simulation"
+signal_source = "simulation"; % "measurement" / "simulation"
 
 % actual measurement
 if(signal_source == "measurement")
@@ -16,28 +16,28 @@ end
 if(signal_source == "simulation")
     PRF = 133;
     fc = 10e9;
-    VSSim = VitalSignsSimulator("SNR", 22, "PRF", PRF, 'CarrierFrequency', fc);
+    VSSim = VitalSignsSimulator("SNR", 30, "PRF", PRF, 'CarrierFrequency', fc);
     [radar_signal_raw, t] = VSSim.simulate();
     % when SNR is 22 dB, we can mostly estimate heart rate with this method
     % when SNR is -5 dB, we can estimate breath rate quite good with this method
 end
 
 %% preprocessing - decimation
-desired_fs = PRF; % We want to have a sampling frequency not to high to filter out high-frequency noise,
+desired_fs = 30; % We want to have a sampling frequency not to high to filter out high-frequency noise,
 % but not too low in order to capture heart oscilations
 % desired_fs should be 2x greater than typical heart oscillation frequency (about 8 Hz)
 
-%%% currently works only in simulation
-% [radar_signal, actual_fs, t_resampled] = set_fs(radar_signal_raw, PRF, desired_fs);
-% 
-% % phase difference extraction
-% signal = compl_diff(diff(unwrap(angle(radar_signal))));
+%% currently works only in simulation
+[radar_signal, actual_fs, t_resampled] = set_fs(radar_signal_raw, PRF, desired_fs);
 
-signal = signal_filled;
-[signal, actual_fs, t_resampled] = set_fs(signal, PRF, desired_fs);
+% phase difference extraction
+signal = compl_diff(diff(unwrap(angle(radar_signal))));
+
+% % signal = signal_filled;
+% [signal, actual_fs, t_resampled] = set_fs(signal, PRF, desired_fs);
 
 
-[imf,~, info] = vmd(signal, "NumIMFs",6); % only two components: breath and heartbeat
+[imf,~, info] = vmd(signal, "NumIMFs",2); % only two components: breath and heartbeat
 disp(info.CentralFrequencies * actual_fs)
 
 xlims = [1500 2400];

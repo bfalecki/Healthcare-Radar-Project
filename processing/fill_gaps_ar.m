@@ -6,7 +6,7 @@ function x_filled = fill_gaps_ar(x, p)
 %
 % Returns: x_filled – signal with gaps filled
 
-
+    p_desired = p;
 
     x = x(:); % kolumna
     nanmask = isnan(x);
@@ -22,7 +22,7 @@ function x_filled = fill_gaps_ar(x, p)
     % 2) Uczenie AR tylko na próbkach dostępnych (bez NaN)
     %    Uwaga: 'aryule' jest w Signal Processing Toolbox
     x_train = xz(~nanmask);
-    if numel(x_train) <= p
+    if numel(x_train) <= p_desired
         error('Za mało danych obserwowanych do estymacji AR(p). Zmniejsz p.');
     end
     [A, ~] = aryule(x_train, p);  % A = [1 a1 a2 ... ap]

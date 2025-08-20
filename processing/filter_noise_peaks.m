@@ -1,36 +1,31 @@
-function [signal_filt,condition_function, thresh] = filter_noise_peaks(signal, varargin)
+function [signal_filt,condition_function, thresh] = filter_noise_peaks(signal, opts)
 % This function performs filtering of the measured differentiated phase signal.
 % In the signal, there are often some noise peaks which needs to be removed
 
-% % before using this function, you need to extract signal in this way:
-% phase = unwrap(angle(radar_signal_raw));
-% signal = compl_diff(diff(phase));
-% % measured signal needs to be then filled with breaks
-% [signal, ~, ~, start_samples, end_samples] = ...
-% fill_signal_gaps(signal, rec_file.times_post_burse, actual_fs);
-
-p = inputParser;
-
-addParameter(p, 'ThresholdQuantille', 0.9); % Discrimination threshold is computed as thresh = quantile(condition_function,ThresholdQuantille) * ThresholdMultiplier;
-addParameter(p, 'ThresholdMultiplier', 3); % See above
-addParameter(p, 'SegmentsBounds', [1;length(signal)]); % Discrimined samples cannot be predicted based on the out-of-segment samples
+arguments
+    signal % % before using this function, you need to extract signal in this way:
+        % phase = unwrap(angle(radar_signal_raw));
+        % signal = compl_diff(diff(phase));
+        % % measured signal needs to be then filled with breaks
+        % [signal, ~, ~, start_samples, end_samples] = ...
+        %       fill_signal_gaps(signal, rec_file.times_post_burse, actual_fs);
+    opts.ThresholdQuantille = 0.9  % Discrimination threshold is computed as thresh = quantile(condition_function,ThresholdQuantille) * ThresholdMultiplier;
+    opts.ThresholdMultiplier = 3 % See above
+    opts.SegmentsBounds = [1;length(signal)]; % Discrimined samples cannot be predicted based on the out-of-segment samples
             % Specify SegmentsBounds in format:
             % [start_samples; end_samples], e.g. [1 11 21; 7 17 27]
-addParameter(p, 'NeighborSize', 2);  % Samples are predicted based on mean value of the valid samples in maximum neighbor of NeighborSize
+    opts.NeighborSize = 2 % Samples are predicted based on mean value of the valid samples in maximum neighbor of NeighborSize
             % For example, NeighborSize = 2 gives total 4 possible valid
             % samples to predict the middle value
             % If there is no valid samples, result will be filled by 0
-addParameter(p, 'Display', 0); % Display plot
+    opts.Display = 0 % Display plot
+end
 
-parse(p, varargin{:});
-
-
-
-ThresholdQuantille = p.Results.ThresholdQuantille;
-ThresholdMultiplier = p.Results.ThresholdMultiplier;
-SegmentsBounds = p.Results.SegmentsBounds;
-neig_size = p.Results.NeighborSize;
-Display = p.Results.Display;
+ThresholdQuantille = opts.ThresholdQuantille;
+ThresholdMultiplier = opts.ThresholdMultiplier;
+SegmentsBounds = opts.SegmentsBounds;
+neig_size = opts.NeighborSize;
+Display = opts.Display;
 
 
 
