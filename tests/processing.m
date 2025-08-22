@@ -10,8 +10,6 @@ data = data1; % data1 / data2
 
 c = physconst("LightSpeed");
 
-% addpath(genpath("C:\Users\bfalecki\Documents\radarprfdetection\scripts"))
-% addpath(genpath("/home/user/Documents/iFurther/radarprfdetection/scripts/"))
 % addpath(genpath("Phaser-Control-with-MATLAB")) % <-- path to https://github.com/mathworks/Phaser-Control-with-MATLAB/tree/main
 
 
