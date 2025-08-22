@@ -29,14 +29,17 @@ signal_filt = filter_noise_peaks(signal, ...
 signal_filt = fill_gaps_interp(signal_filt,segments_idxes, "nearest");
 
 
-% % we need then high-pass filter to cancel clutter and breath movement
+% % we need then high-pass filter to cancel clutter and breath movement in
+% spectrogram
 phase_cutoff_freq_low = 5; % Hz
 signal_filt = highpass(signal_filt, phase_cutoff_freq_low / actual_fs);
 
 
 figure(11)
-plot(t_resampled(1:length(signal_filt)),signal_filt)
-
+plot(t_resampled(1:length(signal_filt)),signal_filt/actual_fs)
+xlim([0 t_resampled(length(signal_filt))])
+xlabel("Time [s]")
+title("Filtered Phase Differentiation [rad/s]")
 
 
 %% STFT calculation
@@ -60,6 +63,10 @@ sp(:,~segments_idxes_stft) = 0;
 plot_surf(sp, t_ax, f_ax)
 colormap("jet")
 clim([-50 -20])
+ylim([0 max(f_ax)])
+title("Short Time Fourier Transform")
+xlabel("Time [s]")
+ylabel("Frequnecy [Hz]")
 
 % we do not expect heart rate below 0.5 Hz, so better to get rid of it
 % before prediction (experimentally)
@@ -79,8 +86,9 @@ heart_cycles_detected_segments_only = heart_cycles_detected;
 heart_cycles_detected_segments_only(~segments_idxes_stft) = nan;
 plot(t_ax, heart_cycles_detected_segments_only, LineWidth=2)
 hold off
-title("Signal extracted from STFT")
+title("Signal Extracted from STFT")
 legend("Predicted", "Available")
+xlabel("Time [s]")
 
 
 %% synchrosqueezing
@@ -111,7 +119,9 @@ ax.YDir = "normal";
 hold on
 plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
 hold off
-title("Heart Rate [BPM]")
+ylabel("Heart Rate [BPM]")
+xlabel("Time [s]")
+title("Synchrosqueezed STFT with detected time-frequency ridge")
 
 
 % % VMD - DOESN'T WORK WELL
