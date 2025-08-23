@@ -18,6 +18,7 @@ original_signal_length = length(signal);
 window = get_gauss_win_stft(opts.WindowWidth,new_fs, opts.FrequencyResolution);
         
 if(length(signal) < length(window)) % preventing fsst error
+    signal = signal(:);
     signal = padarray(signal, length(window) - length(signal), "post");
 end
 

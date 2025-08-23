@@ -1,9 +1,13 @@
 % Breath signal interpolation
 % Inspired by processing_RN.m by Rafał Najda
 
-
+% 
 filename = "phaser_rec_07-Aug-2025_12-20-54_1.5s_40cm_R_spoczynek.mat";
 % filename = "phaser_rec_07-Aug-2025_13-03-54_1.5s__200cm_R_spoczynek.mat";
+% filename = "phaser_rec_07-Aug-2025_12-45-57_1s__40cm_R_spoczynek.mat";
+% filename = "phaser_rec_07-Aug-2025_12-54-22_1.5s__100cm_R_spoczynek.mat";
+% filename = "phaser_rec_07-Aug-2025_13-08-10_0.2s__200cm_R_spoczynek.mat";
+% filename = "phaser_rec_07-Aug-2025_12-58-56_0.2s_100cm_R_spoczynek.mat";
 folder = "rec" + filesep;
 rec_file = load(folder+filename);
 
@@ -11,60 +15,70 @@ rec_file = load(folder+filename);
 RT = fft(rec_file.data1);
 [radar_signal_raw, RT_row] = choose_RT_row(RT);
 
+
 % filling gaps in the signal
 [signal_filled, time_lags_filled, segment_duration, start_samples, end_samples] = ...
     fill_signal_gaps(radar_signal_raw, rec_file.times_post_tx, rec_file.prf);
+xlims = [time_lags_filled(1) time_lags_filled(end)];
 
-%% phase demodulation
+%% phase anaylsis
+
 phase = unwrap(angle(signal_filled));
 
-xlims = [time_lags_filled(1) time_lags_filled(end)];
-figure(21)
-plot(time_lags_filled, phase)
-xlabel("Time [s]")
-ylabel("Unwrapped phase [rad]")
-xlim(xlims)
+% get rid of big first difference sample
+phase = reset_accumulated_phase(phase, start_samples,end_samples);
 
-%% differentiation
-fdoppler = phase2fdoppler(phase, rec_file.fs);
+% differentiation
+phase_diff = compl_diff(diff(phase));
 
 % outstanding vals filtering
-figure(9)
-fdoppler = filter_noise_peaks(fdoppler, "Display",1,"NeighborSize",2,...
-    "SegmentsBounds",[start_samples;end_samples],"ThresholdMultiplier",3,"ThresholdQuantille",0.9);
+phase_diff = filter_noise_peaks(phase_diff, "Display",0,"NeighborSize",3,...
+    "SegmentsBounds",[start_samples;end_samples],...
+    "ThresholdMultiplier",3,"ThresholdQuantille",0.9);
+
+% fix segment edge noise (put mean values to every edge)
+depht_samples = round(0.1 * rec_file.prf);
+phase_diff = fix_edges(phase_diff, start_samples,end_samples, depht_samples);
+
 
 
 % place NaNs in breaks
-[fdoppler, max_gap] = placeNans_RN(fdoppler,start_samples, end_samples);
+[phase_diff, max_gap] = placeNans_RN(phase_diff,start_samples, end_samples); % -1 is experimental fix
 
 % interpolate breaks
-fdoppler = fillmissing(fdoppler, 'linear', 'MaxGap',max_gap*2);
+phase_diff = fillmissing(phase_diff, 'linear', 'MaxGap',max_gap*2);
 
 % Restore zeroes in NaN samples
-fdoppler(isnan(fdoppler)) = 0;
+phase_diff(isnan(phase_diff)) = 0;
 
-% Plot 
 
+
+% cumsum - integration
+displacement = cumsum(phase_diff);
+% displacement = phase2displ(displacement,rec_file.fc);
+displacement = displacement - mean(displacement);
 
 figure(4511)
-plot(time_lags_filled, fdoppler)
+plot(time_lags_filled, phase_diff)
 xlabel("Time [s]")
-ylabel("Doppler frequency [Hz]")
 xlim(xlims)
 title("Interpolated fdoppler (using fillmissing)")
 
-% cumsum
-displacement = cumsum(fdoppler);
-displacement = displacement - mean(displacement);
-cutoff_freq_low = 0.05;
+cutoff_freq_low = 0.05; % we do not expect breath rate below 0.05 Hz
 displacement = highpass(displacement, cutoff_freq_low/rec_file.prf);
+% for break visualization
+displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
 figure(4)
 plot(time_lags_filled,displacement)
+hold on
+plot(time_lags_filled,displacement_unfilled, LineWidth=2)
+plot(time_lags_filled,reset_accumulated_phase(phase, start_samples,end_samples))
+hold off
 title("Cumulated fdoppler (phase)")
 
 %% instantaneous respiratory rate using synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(displacement,rec_file.prf,...
-    "FrequencyResolution",1/60,"MaximumVisibleFrequency",1.5, "WindowWidth",20);
+    "FrequencyResolution",1/60/4,"MaximumVisibleFrequency",1.5, "WindowWidth",20);
 
 % then find tfridge
 f_low_breath_expected = 0.05; % minimum breath rate expected
@@ -93,16 +107,4 @@ hold off
 ylabel("Breath Rate [BPM]")
 xlabel("Time [s]")
 title("Synchrosqueezed STFT with detected time-frequency ridge")
-
-
-%% respiratory rate - FFT spectrum
-
-figure(2111)
-displacement_spectrum = fft(displacement, 4*length(displacement));
-f_ax = linspace(0, prf, length(displacement_spectrum));
-plot(f_ax, abs(displacement_spectrum))
-xlim([0 1])
-title("Displacement FFT")
-xlabel("Frequency [Hz]")
-ylabel("Amplitude")
 
