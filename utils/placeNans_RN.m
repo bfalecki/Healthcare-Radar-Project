@@ -21,7 +21,8 @@ for i = 1:num_segments-1
         max_gap = max(max_gap, gap_end-gap_start);
         % #### - RN gap_end+1 ze wzgledu na to ze pierwsza probka często
         % jest zawyzona/zanizona i wporwadza bledy w interpolacji
-        placed(gap_start:(gap_end+1)) = NaN;  % Complex NaN
+        % placed(gap_start:(gap_end+1)) = NaN;  % Complex NaN
+        placed(gap_start:gap_end) = NaN;
     end
 end
 end

@@ -9,7 +9,7 @@ arguments
         % % measured signal needs to be then filled with breaks
         % [signal, ~, ~, start_samples, end_samples] = ...
         %       fill_signal_gaps(signal, rec_file.times_post_burse, actual_fs);
-    opts.ThresholdQuantille = 0.9  % Discrimination threshold is computed as thresh = quantile(condition_function,ThresholdQuantille) * ThresholdMultiplier;
+    opts.ThresholdQuantile = 0.9  % Discrimination threshold is computed as thresh = quantile(condition_function,ThresholdQuantile) * ThresholdMultiplier;
     opts.ThresholdMultiplier = 3 % See above
     opts.SegmentsBounds = [1;length(signal)]; % Discrimined samples cannot be predicted based on the out-of-segment samples
             % Specify SegmentsBounds in format:
@@ -21,7 +21,7 @@ arguments
     opts.Display = 0 % Display plot
 end
 
-ThresholdQuantille = opts.ThresholdQuantille;
+ThresholdQuantile = opts.ThresholdQuantile;
 ThresholdMultiplier = opts.ThresholdMultiplier;
 SegmentsBounds = opts.SegmentsBounds;
 neig_size = opts.NeighborSize;
@@ -31,7 +31,7 @@ Display = opts.Display;
 
 % threshold based on differentation amplitude
 condition_function = abs(compl_diff(diff(signal)));
-thresh = quantile(condition_function,ThresholdQuantille) * ThresholdMultiplier;
+thresh = quantile(condition_function,ThresholdQuantile) * ThresholdMultiplier;
 out_idxes = condition_function > thresh;
 out_idxes_found = find(out_idxes);
 

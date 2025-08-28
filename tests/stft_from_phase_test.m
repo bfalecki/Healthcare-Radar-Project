@@ -8,6 +8,19 @@ RT = fft(rec_file.data1);
 actual_fs = rec_file.prf;
 [radar_signal_raw, RT_row] = choose_RT_row(RT);
 
+% [phaseRaw,phaseDiffRaw,segmentsBounds, timeLags,segmentDuration,phase,phaseDiff]...
+%     = prepare_phase(...
+%     radar_signal_raw, rec_file.prf,...
+%     "FilterNoisePeaks",1,...
+%     "FixEdgesDepth",0.5,...
+%     "FNP_NeighborSize",3,...
+%     "FNP_ThresholdMultiplier",3,...
+%     "FNP_ThresholdQuantile",0.9,...
+%     "FrameStartTimes",rec_file.times_post_burse);
+% 
+% signal_filt = phaseDiff;
+
+% % % there is slight difference using this approach
 % phase difference extraction\
 phase = unwrap(angle(radar_signal_raw));
 signal = compl_diff(diff(phase));
@@ -21,7 +34,7 @@ fill_signal_gaps(signal, rec_file.times_post_burse, actual_fs);
 signal_filt = filter_noise_peaks(signal, ...
     "SegmentsBounds", [start_samples;end_samples], ...
     "Display", 0, ...
-    'ThresholdQuantille', 0.9, ...
+    'ThresholdQuantile', 0.9, ...
     'ThresholdMultiplier',3);
 
 % this fragment fills gaps in the signal by replicating the nearest value
@@ -29,8 +42,7 @@ signal_filt = filter_noise_peaks(signal, ...
 signal_filt = fill_gaps_interp(signal_filt,segments_idxes, "nearest");
 
 
-% % we need then high-pass filter to cancel clutter and breath movement in
-% spectrogram
+% % we need then high-pass filter to cancel clutter and breath movement in spectrogram
 phase_cutoff_freq_low = 5; % Hz
 signal_filt = highpass(signal_filt, phase_cutoff_freq_low / actual_fs);
 
@@ -117,7 +129,7 @@ colorbar
 ax = gca;
 ax.YDir = "normal";
 hold on
-plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
+plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r", "LineStyle","--")
 hold off
 ylabel("Heart Rate [BPM]")
 xlabel("Time [s]")

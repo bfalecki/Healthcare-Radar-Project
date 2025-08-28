@@ -1,50 +1,37 @@
-% Breath signal interpolation
-% Inspired by processing_RN.m by Rafał Najda
+function [ridge_bpm,t_ax_fsst,displacement] = extract_breath(radar_signal,prf, fc,frameStartTimes)
+%EXTRACT_BREATH 
 
-% 
-filename = "phaser_rec_07-Aug-2025_12-20-54_1.5s_40cm_R_spoczynek.mat";
-% filename = "phaser_rec_07-Aug-2025_13-03-54_1.5s__200cm_R_spoczynek.mat";
-% filename = "phaser_rec_07-Aug-2025_12-45-57_1s__40cm_R_spoczynek.mat";
-% filename = "phaser_rec_07-Aug-2025_12-54-22_1.5s__100cm_R_spoczynek.mat";
-% filename = "phaser_rec_07-Aug-2025_13-08-10_0.2s__200cm_R_spoczynek.mat";
-% filename = "phaser_rec_07-Aug-2025_12-58-56_0.2s_100cm_R_spoczynek.mat";
-folder = "rec" + filesep;
-rec_file = load(folder+filename);
+arguments
+    radar_signal % signal for analysis [IQ]
+    prf % pulse repetition frequnecy [Hz]
+    fc % carrier freq. [Hz]
+    frameStartTimes % time starts of segments [s], vector
 
-% range compression & range cell choice
-RT = fft(rec_file.data1);
-[radar_signal_raw, RT_row] = choose_RT_row(RT);
+end
 
-
-% % % % % % what do we need for processing:
-% % % % % % rec_file.times_post_tx (FrameStartTimes)
-% % % % % % rec_file.prf (PRF)
-% % % % % % radar_signal_raw (RadarSignal)
-% % % % % 
-% % % % % % optional
 
 [phaseRaw,phaseDiffRaw,segmentsBounds, timeLags,segmentDuration,phase,phaseDiff] ...
     = prepare_phase( ...
-    radar_signal_raw,rec_file.prf, ...
+    radar_signal,prf, ...
     "FixEdgesDepth",0.1,...
     "FNP_NeighborSize",3,...
     "FNP_ThresholdMultiplier",3,...
     "FNP_ThresholdQuantile",0.9,...
-    "FrameStartTimes",rec_file.times_post_tx,...
+    "FrameStartTimes",frameStartTimes,...
     "FilterNoisePeaks",1);
 
 start_samples = segmentsBounds(1, :);
 end_samples = segmentsBounds(2, :);
-xlims = [timeLags(1) timeLags(end)];
+xlims = [timeLags(1) timeLags(end)]
 
 
 
-displacement = phase2displ(phase,rec_file.fc);
+displacement = phase2displ(phase,fc);
 % offset cancellation
 displacement = displacement - mean(displacement);
 
 cutoff_freq_low = 0.05; % we do not expect breath rate below 0.05 Hz
-displacement = highpass(displacement, cutoff_freq_low/rec_file.prf);
+displacement = highpass(displacement, cutoff_freq_low/prf);
 
 % for break visualization
 displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
@@ -65,7 +52,7 @@ hold off
 title("Displacement [mm]")
 
 %% instantaneous respiratory rate using synchrosqueezing
-[synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(displacement,rec_file.prf,...
+[synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(displacement,prf,...
     "FrequencyResolution",1/60/4,"MaximumVisibleFrequency",1.5, "WindowWidth",20);
 
 % then find tfridge
@@ -95,4 +82,5 @@ hold off
 ylabel("Breath Rate [BPM]")
 xlabel("Time [s]")
 title("Synchrosqueezed STFT with detected time-frequency ridge")
+end
 
