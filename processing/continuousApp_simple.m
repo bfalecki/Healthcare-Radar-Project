@@ -1,4 +1,4 @@
-sc = SignalCapturer("TotalRecLength",10,"FrameLength",1.5, "DoSave",0);
+sc = SignalCapturer("TotalRecLength",2,"FrameLength",1.87, "DoSave",0);
 sc.configure();
 
 

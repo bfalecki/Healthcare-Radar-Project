@@ -1,4 +1,4 @@
-classdef SignalCapturer
+classdef SignalCapturer < handle
     %SIGNALCAPTURER Summary of this class goes here
     %   Detailed explanation goes here
     

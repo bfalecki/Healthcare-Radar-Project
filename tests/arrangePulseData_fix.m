@@ -4,7 +4,9 @@ function outdata = arrangePulseData_fix(indata,rx,bf,bf_TDD)
 % Copyright 2023 The MathWorks, Inc.
 
 % Combine data from channels with calibration weights
-indata = applyDigitalCalWeights(indata);
+if(size(indata,2) == 2)
+    indata = applyDigitalCalWeights(indata);
+end
 
 % Extract timing from pluto and phaser setup
 fs = rx.SamplingRate;

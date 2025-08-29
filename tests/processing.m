@@ -1,12 +1,21 @@
 % this script can load signal recorded by record_signal.m
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
-
-load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat")
+clear data data1 data2
+load("rec"+filesep+"phaser_rec_29-Aug-2025_16-10-22.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
-data = data1; % data1 / data2
+% if(~exist("data", "var"))
+%     data = data1; % data1 / data2
+% end
+
+% w = [0.8; exp(1j*2*pi * 0.5)];
+% w = [0 1];
+w = loadCalibrationWeights().DigitalWeights;
+data = data1*conj(w(1)) + data2*conj(w(2));
+
+
 
 c = physconst("LightSpeed");
 
@@ -18,15 +27,15 @@ c = physconst("LightSpeed");
 rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
     OperatingFrequency=fc,SampleRate=fs,RangeMethod="FFT",...
     SweepSlope=sweepslope,PRFSource="Property",PRF=prf);
-[RDresp_matr,rnggrid,dopgrid] = rd(data1);
+[RDresp_matr,rnggrid,dopgrid] = rd(data);
 axes(figure)
-rd_out = rd.plotResponse(data1);
+rd_out = rd.plotResponse(data);
 ax = gca;
 xlim(ax,[-maxSpeed,maxSpeed]); ylim(ax,[0,maxRange]);
 
 %% wybór wiersza mapy RT
 
-RT = fft(data1);
+RT = fft(data);
 RD = fftshift(fft(RT,[], 2),2);
 % figure(23)
 % imagesc(db(RD(1:20,:)))
@@ -51,7 +60,7 @@ colorbar
 
 
 %% wydobycie jednowymiarowego przebiegu I/Q
-range_cell = 9;
+range_cell = 11;
 
 signal_extracted = RT(range_cell,:);
 

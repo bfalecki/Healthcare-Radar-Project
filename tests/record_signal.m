@@ -16,7 +16,7 @@ warning('off','MATLAB:system:ObsoleteSystemObjectMixin')
 save_path = "rec" + filesep;
 do_save = 1;
 
-maxRange = 10; % 100 m max range, use the system in a room
+maxRange = 10; % 100 m max rang+e, use the system in a room
 rangeResolution = 1/3; % Range resolution of 1/3 m
 maxSpeed = 1; % Max speed we expect is 5 m/s, somebody moving towards the radar (1 2 3 5 10)
 speedResolution = 1/100; % Speed resolution of 1/2 m/s
@@ -30,7 +30,8 @@ rampbandwidth = ceil(rangeres2bw(rangeResolution)/1e6)*1e6; % get ramp bandwidth
 fmaxdop = speed2dop(2*maxSpeed,lambda); % Maximum doppler shift depends on max speed we want to resolve, multiply by 2 for 2 way propagation
 prf = 2*fmaxdop; % PRF needs to be set to unambiguously resolve max speed
 
-frame_len = 1.5;
+% frame_len = 1.87;
+frame_len = 1.87;
 nPulses = ceil(frame_len/1.5  *  2*maxSpeed/speedResolution); % Number of pulses set to for speed resolution
             % about 1.5s recording
 tpulse = ceil((1/prf)*1e3)*1e-3; % Pulse time, round up to the nearest ms
@@ -142,7 +143,9 @@ size_data_dim1 = ceil(fs*tsweep);
 
 % alokacja
 data = zeros(size_data_dim1, size_data_dim2*nCaptures);
-% data2 = data;
+% raw_data_full = zeros(nCaptures*nSamples, 2);
+data1 = data;
+data2 = data;
 
 % Create a range doppler plot
 % rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
@@ -158,6 +161,9 @@ times_post_rx = zeros(1, nCaptures);
 for i = 1:nCaptures
     idx_start = size_data_dim2*(i-1)+1;
     idx_end = idx_start +size_data_dim2-1;
+
+    % idx_start_raw = nSamples*(i-1)+1;
+    % idx_end_raw = idx_start_raw + nSamples-1;
     % capture data
     [raw_data, times_struct] = captureTransmitWf_timeStamps(rx,tx,bf,txWaveform);
 
@@ -168,9 +174,11 @@ for i = 1:nCaptures
     times_post_burse(i) = times_struct.time_post_burse;
     times_post_rx(i) = times_struct.time_post_rx;
 
+    % raw_data_full(idx_start_raw:idx_end_raw,:) = raw_data;
     % % Remove excess data, rearrange into nSamples x nPulses
     data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data,rx,bf,bf_TDD);
-    % data2(:,idx_start:idx_end) = arrangePulseData(raw_data(:,2),rx,bf,bf_TDD);
+    data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data(:,1),rx,bf,bf_TDD);
+    data2(:,idx_start:idx_end) = arrangePulseData_fix(raw_data(:,2),rx,bf,bf_TDD);
     % 
     % % Plot the data
     % rd.plotResponse(data1(:,idx_start:idx_end));
@@ -185,7 +193,7 @@ file_suffix = string(datetime("now"));
 file_suffix = strrep(file_suffix, ":", "-");
 file_suffix = strrep(file_suffix, " ", "_");
 if(do_save)
-    save(save_path + "phaser_rec_"+  file_suffix + ".mat", "data", "fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
+    save(save_path + "phaser_rec_"+  file_suffix + ".mat", "data","data1","data2","fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
         "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx")
 end
 %% 
@@ -195,7 +203,10 @@ rd = phased.RangeDopplerResponse(DopplerOutput="Speed",...
     OperatingFrequency=fc,SampleRate=fs,RangeMethod="FFT",...
     SweepSlope=sweepslope,PRFSource="Property",PRF=prf);
 axes(figure)
-rd.plotResponse(data);
+% w = loadCalibrationWeights().DigitalWeights;
+w = [1; exp(1j*2*pi * 0.9)];
+rd.plotResponse(data1*conj(w(1)) + data2*conj(w(2)));
+% rd.plotResponse(data);
 ax = gca;
 xlim(ax,[-maxSpeed,maxSpeed]); ylim(ax,[0,maxRange]);
 

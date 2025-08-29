@@ -1,17 +1,48 @@
-sc = SignalCapturer("TotalRecLength",10,"FrameLength",1.5, "DoSave",0);
+clear f1 f2 hBreath hHeartbeat
+% delete(pool);
+if(~exist("pool", "var"))
+    pool = parpool("Processes");
+end
+
+sc = SignalCapturer("TotalRecLength",2,"FrameLength",1.87, "DoSave",0);
 sc.configure();
 
 futures = parallel.FevalFuture.empty; % przechowywanie zadań asynchronicznych
 
+
 while true
+    if ~exist("hBreath","var")
+        figure(1)
+        hBreath = plot(nan,nan);
+        title("breath rate")
+    end
+
+    if ~exist("hHeartbeat","var")
+        figure(2)
+        hHeartbeat = plot(nan,nan);
+        title("Heart rate")
+    end
+    if(exist("f1", "var"))
+        [ridge_bpm_breath,t_ax_fsst_breath,displacement] = fetchOutputs(f1);
+        [ridge_bpm_hb,t_ax_fsst_hb,heart_cycles_detected] = fetchOutputs(f2);
+        
+        set(hBreath, 'XData', t_ax_fsst_breath, 'YData', ridge_bpm_breath);
+        drawnow
+        set(hHeartbeat, 'XData', t_ax_fsst_hb, 'YData', ridge_bpm_hb);
+        drawnow
+    end
+
+
     sc.record();             % akwizycja 1 ramki
     
     RT = fft(sc.data);
     [radar_signal, RT_row] = choose_RT_row(RT);
 
+
+
     % analiza w tle
-    f1 = parfeval(backgroundPool, @extract_breath, 0, radar_signal, sc.prf, sc.fc, sc.times_post_tx);
-    f2 = parfeval(backgroundPool, @extract_heartbeat, 0, radar_signal, sc.prf, sc.times_post_tx);
+    f1 = parfeval(pool, @extract_breath, 3, radar_signal, sc.prf, sc.fc, sc.times_post_tx);
+    f2 = parfeval(pool, @extract_heartbeat, 3, radar_signal, sc.prf, sc.times_post_tx);
 
     futures = [futures f1 f2];  % kolekcja futures (opcjonalnie można sprzątać)
 end

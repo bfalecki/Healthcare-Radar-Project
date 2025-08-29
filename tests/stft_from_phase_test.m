@@ -1,10 +1,10 @@
 %% Prepare signal
 
-rec_file = load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat");
+rec_file = load("rec"+filesep+"phaser_rec_29-Aug-2025_16-47-08.mat");
 % rec_file = load("rec"+filesep+"phaser_rec_07-Aug-2025_12-20-54_1.5s_40cm_R_spoczynek.mat");
 % rec_file = load("rec"+filesep+"phaser_rec_07-Aug-2025_12-45-57_1s__40cm_R_spoczynek");
 
-RT = fft(rec_file.data1);
+RT = fft(rec_file.data);
 actual_fs = rec_file.prf;
 [radar_signal_raw, RT_row] = choose_RT_row(RT);
 
@@ -34,8 +34,8 @@ fill_signal_gaps(signal, rec_file.times_post_burse, actual_fs);
 signal_filt = filter_noise_peaks(signal, ...
     "SegmentsBounds", [start_samples;end_samples], ...
     "Display", 0, ...
-    'ThresholdQuantile', 0.9, ...
-    'ThresholdMultiplier',3);
+    'ThresholdQuantile', 0.7, ...
+    'ThresholdMultiplier',1);
 
 % this fragment fills gaps in the signal by replicating the nearest value
 % (to lower high frequency noise in the STFT)

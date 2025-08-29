@@ -9,6 +9,7 @@ arguments
 
 end
 
+% disp(" ---------------- Started extract_breath ----------------")
 
 [phaseRaw,phaseDiffRaw,segmentsBounds, timeLags,segmentDuration,phase,phaseDiff] ...
     = prepare_phase( ...
@@ -22,7 +23,7 @@ end
 
 start_samples = segmentsBounds(1, :);
 end_samples = segmentsBounds(2, :);
-xlims = [timeLags(1) timeLags(end)]
+xlims = [timeLags(1) timeLags(end)];
 
 
 
@@ -37,19 +38,21 @@ displacement = highpass(displacement, cutoff_freq_low/prf);
 displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
 
 
-figure(4511)
-plot(timeLags, phaseDiff)
-xlabel("Time [s]")
-xlim(xlims)
-title("Differentiated Phase")
+% figure(20)
+% plot(timeLags, phaseDiff)
+% xlabel("Time [s]")
+% xlim(xlims)
+% title("Differentiated Phase")
+% drawnow
 
 
-figure(4)
-plot(timeLags,displacement * 1e3)
-hold on
-plot(timeLags,displacement_unfilled * 1e3, LineWidth=2)
-hold off
-title("Displacement [mm]")
+% figure(21)
+% plot(timeLags,displacement * 1e3)
+% hold on
+% plot(timeLags,displacement_unfilled * 1e3, LineWidth=2)
+% hold off
+% title("Displacement [mm]")
+% drawnow
 
 %% instantaneous respiratory rate using synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(displacement,prf,...
@@ -67,20 +70,21 @@ f_high_breath_expexcted = 1.5; % maximum breath rate expected
 f_ax_bpm = f_ax_fsst*60;
 ridge_bpm = ridge*60;
 
-figure(211)
-imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
-clim_max = max(db(synchrosqueezed),[], "all");
-clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
-cmap = colormap("gray");
-colormap(flip(cmap))
-colorbar
-ax = gca;
-ax.YDir = "normal";
-hold on
-plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
-hold off
-ylabel("Breath Rate [BPM]")
-xlabel("Time [s]")
-title("Synchrosqueezed STFT with detected time-frequency ridge")
+% figure(22)
+% imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
+% clim_max = max(db(synchrosqueezed),[], "all");
+% clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
+% cmap = colormap("gray");
+% colormap(flip(cmap))
+% colorbar
+% ax = gca;
+% ax.YDir = "normal";
+% hold on
+% plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
+% hold off
+% ylabel("Breath Rate [BPM]")
+% xlabel("Time [s]")
+% title("Synchrosqueezed STFT with detected time-frequency ridge")
+% drawnow
 end
 

@@ -28,11 +28,12 @@ phase_cutoff_freq_low = 5; % Hz
 signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
 
 
-figure(11)
-plot(t_resampled(1:length(signal_filt)),signal_filt/prf)
-xlim([0 t_resampled(length(signal_filt))])
-xlabel("Time [s]")
-title("Filtered Phase Differentiation [rad/s]")
+% figure(11)
+% plot(t_resampled(1:length(signal_filt)),signal_filt/prf)
+% xlim([0 t_resampled(length(signal_filt))])
+% xlabel("Time [s]")
+% title("Filtered Phase Differentiation [rad/s]")
+% drawnow
 
 
 %% STFT calculation
@@ -51,15 +52,16 @@ heart_cycles_detected = extract_env_sp(sp,f_ax,"FreqRange",heart_oscillation_fre
 % also binary idxes are necessary
 segments_idxes_stft = get_segments_idxes(start_samples_stft,end_samples_stft, length(heart_cycles_detected));
 
-figure(2)
-sp(:,~segments_idxes_stft) = 0;
-plot_surf(sp, t_ax, f_ax)
-colormap("jet")
-clim([-50 -20])
-ylim([0 max(f_ax)])
-title("Short Time Fourier Transform")
-xlabel("Time [s]")
-ylabel("Frequnecy [Hz]")
+% figure(12)
+% sp(:,~segments_idxes_stft) = 0;
+% plot_surf(sp, t_ax, f_ax)
+% colormap("jet")
+% clim([-50 -20])
+% ylim([0 max(f_ax)])
+% title("Short Time Fourier Transform")
+% xlabel("Time [s]")
+% ylabel("Frequnecy [Hz]")
+% drawnow
 
 % we do not expect heart rate below 0.5 Hz, so better to get rid of it
 % before prediction (experimentally)
@@ -72,16 +74,17 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
     fs_stft, segments_idxes_stft,segment_duration,"PartConsidered",1);
 
 
-figure(3)
-plot(t_ax, heart_cycles_detected)
-hold on
-heart_cycles_detected_segments_only = heart_cycles_detected;
-heart_cycles_detected_segments_only(~segments_idxes_stft) = nan;
-plot(t_ax, heart_cycles_detected_segments_only, LineWidth=2)
-hold off
-title("Signal Extracted from STFT")
-legend("Predicted", "Available")
-xlabel("Time [s]")
+% figure(13)
+% plot(t_ax, heart_cycles_detected)
+% hold on
+% heart_cycles_detected_segments_only = heart_cycles_detected;
+% heart_cycles_detected_segments_only(~segments_idxes_stft) = nan;
+% plot(t_ax, heart_cycles_detected_segments_only, LineWidth=2)
+% hold off
+% title("Signal Extracted from STFT")
+% legend("Predicted", "Available")
+% xlabel("Time [s]")
+% drawnow
 
 
 %% synchrosqueezing
@@ -100,20 +103,21 @@ f_high_hb_expexcted = 3; % maximum heart rate expected
 f_ax_bpm = f_ax_fsst*60;
 ridge_bpm = ridge*60;
 
-figure(21)
-imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
-clim_max = max(db(synchrosqueezed),[], "all");
-clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
-cmap = colormap("gray");
-colormap(flip(cmap))
-colorbar
-ax = gca;
-ax.YDir = "normal";
-hold on
-plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r", "LineStyle","--")
-hold off
-ylabel("Heart Rate [BPM]")
-xlabel("Time [s]")
-title("Synchrosqueezed STFT with detected time-frequency ridge")
+% figure(14)
+% imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
+% clim_max = max(db(synchrosqueezed),[], "all");
+% clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
+% cmap = colormap("gray");
+% colormap(flip(cmap))
+% colorbar
+% ax = gca;
+% ax.YDir = "normal";
+% hold on
+% plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r", "LineStyle","--")
+% hold off
+% ylabel("Heart Rate [BPM]")
+% xlabel("Time [s]")
+% title("Synchrosqueezed STFT with detected time-frequency ridge")
+% drawnow
 end
 
