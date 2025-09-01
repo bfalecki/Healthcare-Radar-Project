@@ -32,7 +32,9 @@ displacement = phase2displ(phase,fc);
 displacement = displacement - mean(displacement);
 
 cutoff_freq_low = 0.05; % we do not expect breath rate below 0.05 Hz
+cutoff_freq_high = 1; % we do not expect breath rate above 1 Hz
 displacement = highpass(displacement, cutoff_freq_low/prf);
+displacement = lowpass(displacement, cutoff_freq_high/prf);
 
 % for break visualization
 displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
@@ -41,11 +43,11 @@ displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
 
 %% instantaneous respiratory rate using synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(displacement,prf,...
-    "FrequencyResolution",1/60/4,"MaximumVisibleFrequency",1.5, "WindowWidth",20);
+    "FrequencyResolution",1/60/4,"MaximumVisibleFrequency",1.5, "WindowWidth",10);
 
 % then find tfridge
 f_low_breath_expected = 0.05; % minimum breath rate expected
-f_high_breath_expexcted = 1.5; % maximum breath rate expected
+f_high_breath_expexcted = 1; % maximum breath rate expected
 [ridge, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
     "JumpPenalty",0.02, "NuberOfRidges",1,...
     "PossibleHighFrequency",f_high_breath_expexcted,...

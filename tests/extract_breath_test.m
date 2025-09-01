@@ -2,7 +2,7 @@
 % Inspired by processing_RN.m by Rafał Najda
 
 % 
-filename = "phaser_rec_29-Aug-2025_16-47-08.mat";
+filename = "phaser_rec_01-Sep-2025_13-52-30.mat";
 % filename = "phaser_rec_07-Aug-2025_12-20-54_1.5s_40cm_R_spoczynek.mat";
 % filename = "phaser_rec_07-Aug-2025_13-03-54_1.5s__200cm_R_spoczynek.mat";
 % filename = "phaser_rec_07-Aug-2025_12-45-57_1s__40cm_R_spoczynek.mat";

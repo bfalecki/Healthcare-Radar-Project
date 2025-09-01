@@ -44,7 +44,7 @@ signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
     "WindowWidth",0.25, "MaximumVisibleFrequency",40);
 
 % extract heart cycles signal
-heart_oscillation_freq_range = [10 20]; % Hz - fast oscillations of heartbeat
+heart_oscillation_freq_range = [0 20]; % Hz - fast oscillations of heartbeat
 heart_cycles_detected = extract_env_sp(sp,f_ax,"FreqRange",heart_oscillation_freq_range);
 
 % we need to determine segments start/end idxes on stft
@@ -71,7 +71,7 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
 
 %% synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(heart_cycles_detected,fs_stft,...
-    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",4);
+    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",5);
 
 % then find tfridge
 f_low_hb_expected = 0.6; % minimum heart rate expected

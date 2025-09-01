@@ -89,8 +89,8 @@ classdef SignalCapturer < handle
             obj.prf = 2*obj.fmaxdop; % PRF needs to be set to unambiguously resolve max speed
             
             obj.frame_len = opts.FrameLength;
-            obj.nPulses = ceil(obj.frame_len/1.5  *  2*obj.maxSpeed/obj.speedResolution); % Number of pulses set to for speed resolution
-                        % about 1.5s recording
+            obj.nPulses = ceil(obj.frame_len/1.5  *  2*obj.maxSpeed/obj.speedResolution); % Number of pulses set to for desired speed resolution
+                        % (in about 1.5s recording)
             obj.tpulse = ceil((1/obj.prf)*1e3)*1e-3; % Pulse time, round up to the nearest ms
             obj.tsweep = getFMCWSweepTime(obj.tpulse,obj.tpulse); % Sweep across as much of the pulse as possible
             obj.sweepslope = obj.rampbandwidth / obj.tsweep; % Slope of the FMCW sweep
@@ -99,8 +99,9 @@ classdef SignalCapturer < handle
             obj.nSamples = ceil(obj.tpulse * obj.nPulses * obj.fs); % Get the total number of samples in a PRP
             
 
-            obj.nCaptures = round(obj.TotalRecLength/(obj.frame_len/1.5)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
-            
+            obj.nCaptures = round(obj.TotalRecLength/(obj.frame_len)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
+            obj.nCaptures(obj.nCaptures == 0) = 1;
+
             if(obj.nSamples > 2^20)
                 error("Too much nPulses per frame (nSamples > 2^20)")
             end
