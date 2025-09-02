@@ -1,4 +1,5 @@
-results_path = "results" + filesep + "meas2" + filesep;
+subfolder = "meas4_breath";
+results_path = "results" + filesep + subfolder + filesep;
 files = dir(results_path + "*.mat");
 
 handles_breath = initBreathPlots();
@@ -9,9 +10,13 @@ breath_rate_time_ax_cell = {};
 heart_rate_cell = {};
 heart_rate_time_ax_cell = {};
 
+
 for k = 1:length(files)
 
     file = load([files(k).folder filesep files(k).name]);
+    if(k == 1)
+        first_fragment_start = file.fragment_date_start;
+    end
 
     breath_rate = file.results_breath.sstft.ridge;
     breath_rate_time_ax = seconds(file.results_breath.sstft.t) + file.fragment_date_start;
@@ -22,6 +27,9 @@ for k = 1:length(files)
     breath_rate_time_ax_cell{end+1} = breath_rate_time_ax;
     heart_rate_cell{end+1} = heart_rate;
     heart_rate_time_ax_cell{end+1} = heart_rate_time_ax;
+
+    % adding time offset from the beggining
+    file.results_breath.displacement.time = file.results_breath.displacement.time + seconds(file.fragment_date_start - first_fragment_start);
 
     plotBreathResults(file.results_breath, handles_breath, "RTrows", file.RTrow_vect);
     plotHeartbeatResults(file.results_heartbeat, handles_heartbeat);
@@ -133,14 +141,28 @@ title("Full Heart Rate");
 % ========================
 %  1. Referencja oddechu
 %  ========================
-ref_breath_path = "reference" + filesep + "Głos 072.m4a";
-[audio, fs] = audioread(ref_breath_path);
+ref_breath_path = "reference" + filesep + subfolder +filesep +  "*.m4a";
+file_ref = dir(ref_breath_path);
+[audio, fs] = audioread([file_ref(1).folder filesep file_ref(1).name]);
+
+% usuń rozszerzenie
+[~, name, ~] = fileparts(file_ref(1).name);
+
+% zamień myślniki na dwukropki w godzinie
+name_fixed = regexprep(name, '(\d{2})-(\d{2})-(\d{2}\.\d+)', '$1:$2:$3');
+
+% wczytaj jako datetime
+datetime_start_reference = datetime(name_fixed, 'InputFormat','dd-MMM-yyyy HH:mm:ss.SSSS');
+time_shift = first_fragment_start - datetime_start_reference;
+disp(datetime_start_reference)
+
 
 % Obwiednia amplitudy (energy envelope)
 env = abs(hilbert(audio));
 env = movmean(env, round(0.2*fs));   % wygładzenie (200 ms okno)
 
 t_audio = (0:length(env)-1)/fs;
+t_audio = t_audio - seconds(time_shift); % adjust to the radar data
 
 % Szacowanie częstości oddechu w BPM (opcjonalne)
 % metoda: FFT na obwiedni w zakresie typowych oddechów

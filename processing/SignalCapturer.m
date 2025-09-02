@@ -212,6 +212,30 @@ classdef SignalCapturer < handle
             
                 % % Remove excess data, rearrange into nSamples x nPulses
                 obj.data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data,obj.rx,obj.bf,obj.bf_TDD);
+
+                % if(obj.do_save)
+                %     file_suffix = string(datetime("now"));
+                %     file_suffix = strrep(file_suffix, ":", "-");
+                %     file_suffix = strrep(file_suffix, " ", "_");
+                %     data = obj.data;
+                %     fc = obj.fc;
+                %     fs = obj.fc;
+                %     prf = obj.prf;
+                %     tpulse = obj.tpulse;
+                %     rampbandwidth = obj.rampbandwidth;
+                %     rx = obj.rx;
+                %     bf = obj.bf;
+                %     bf_TDD = obj.bf_TDD;
+                %     sweepslope = obj.sweepslope;
+                %     maxSpeed = obj.maxSpeed;
+                %     maxRange = obj.maxRange;
+                %     times_pre_tx = obj.times_pre_tx;
+                %     times_post_tx = obj.times_post_tx;
+                %     times_post_burse = obj.times_post_burse;
+                %     times_post_rx = obj.times_post_rx;
+                %         save(obj.save_path + "phaser_rec_App_"+  file_suffix + ".mat", "data","fc", "fs", "prf","tpulse","rampbandwidth", "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
+                %             "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx")
+                % end
             end
 
 

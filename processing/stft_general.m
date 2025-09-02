@@ -15,6 +15,7 @@ end
 % original_signal_length = length(signal);
 [signal, new_fs] = set_fs(signal, SamplingFrequency, opts.MaximumVisibleFrequency*2);
 
+
 % window calculation
 window = get_gauss_win_stft(opts.WindowWidth,new_fs, opts.FrequencyResolution);
 
@@ -23,6 +24,9 @@ overlap_len = getSTFTOverlapLen(opts.DesiredTimeRes,length(window),new_fs);
 
 % helpful in exact bounds determination
 overlap_len_original_fs = overlap_len / new_fs * SamplingFrequency;
+
+% padd signal in the end
+signal = padarray(signal(:), round(length(window)/2), "post");
 
 % stft calculation
 [sp, f_ax, t_ax] = stft(signal, new_fs, "Window",window,"OverlapLength",overlap_len);

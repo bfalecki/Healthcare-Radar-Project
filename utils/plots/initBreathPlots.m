@@ -10,7 +10,7 @@ function handles_breath = initBreathPlots()
 figure(21)
 hDisp1 = plot(nan,nan); hold on
 hDisp2 = plot(nan,nan,'LineWidth',2); hold off
-title("Displacement [mm]");
+title("Displacement [mm] (Breath signal)");
 legend("Predicted","Available");
 setFigSize([0.0 0.65 0.6 0.35])
 
@@ -21,7 +21,7 @@ colormap(flip(gray)); colorbar
 hRidge = line(nan,nan,'Color','r','LineWidth',1.5);
 ylabel("Breath Rate [BPM]"); xlabel("Time [s]");
 title("Synchrosqueezed STFT");
-setFigSize([0.6 0.5 0.4 0.5])
+setFigSize([0.6 0.525 0.4 0.475])
 
 % zapisz uchwyty do struktury
 % handles_breath.phase = hPhase;

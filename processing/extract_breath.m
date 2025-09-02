@@ -32,9 +32,10 @@ displacement = phase2displ(phase,fc);
 displacement = displacement - mean(displacement);
 
 cutoff_freq_low = 0.05; % we do not expect breath rate below 0.05 Hz
-cutoff_freq_high = 1; % we do not expect breath rate above 1 Hz
 displacement = highpass(displacement, cutoff_freq_low/prf);
-displacement = lowpass(displacement, cutoff_freq_high/prf);
+
+cutoff_freq_high = 1; % we do not expect breath rate above 1 Hz (but this is not necessary for the final result)
+% displacement = lowpass(displacement, cutoff_freq_high/prf);
 
 % for break visualization
 displacement_unfilled = placeNans_RN(displacement,start_samples,end_samples);
@@ -74,39 +75,42 @@ results.sstft.t = t_ax_fsst;
 results.sstft.f = f_ax_bpm;
 results.sstft.spectrogram = synchrosqueezed;
 results.sstft.ridge = ridge_bpm;
+results.sstft.cdata_sstft = prep_cdata(synchrosqueezed, "QuantileVal",0.5);
 
 if(opts.PlotFig)
-    figure(20)
-    plot(timeLags, phaseDiff)
-    xlabel("Time [s]")
-    xlim(xlims)
-    title("Differentiated Phase")
-    drawnow
-
-    figure(21)
-    plot(timeLags,displacement * 1e3)
-    hold on
-    plot(timeLags,displacement_unfilled * 1e3, LineWidth=2)
-    hold off
-    title("Displacement [mm]")
-    drawnow
-
-    figure(22)
-    imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
-    clim_max = max(db(synchrosqueezed),[], "all");
-    clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
-    cmap = colormap("gray");
-    colormap(flip(cmap))
-    colorbar
-    ax = gca;
-    ax.YDir = "normal";
-    hold on
-    plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
-    hold off
-    ylabel("Breath Rate [BPM]")
-    xlabel("Time [s]")
-    title("Synchrosqueezed STFT with detected time-frequency ridge")
-    drawnow
+    handles = initBreathPlots();
+    plotBreathResults(results,handles);
+    % figure(20)
+    % plot(timeLags, phaseDiff)
+    % xlabel("Time [s]")
+    % xlim(xlims)
+    % title("Differentiated Phase")
+    % drawnow
+    % 
+    % figure(21)
+    % plot(timeLags,displacement * 1e3)
+    % hold on
+    % plot(timeLags,displacement_unfilled * 1e3, LineWidth=2)
+    % hold off
+    % title("Displacement [mm]")
+    % drawnow
+    % 
+    % figure(22)
+    % imagesc(t_ax_fsst,f_ax_bpm,db(synchrosqueezed))
+    % clim_max = max(db(synchrosqueezed),[], "all");
+    % clim([clim_max-30 clim_max]) % we can see  up tu 30 dB smaller than maximum
+    % cmap = colormap("gray");
+    % colormap(flip(cmap))
+    % colorbar
+    % ax = gca;
+    % ax.YDir = "normal";
+    % hold on
+    % plot(t_ax_fsst, ridge_bpm, "LineWidth",1.5, "Color","r")
+    % hold off
+    % ylabel("Breath Rate [BPM]")
+    % xlabel("Time [s]")
+    % title("Synchrosqueezed STFT with detected time-frequency ridge")
+    % drawnow
 end
 
 

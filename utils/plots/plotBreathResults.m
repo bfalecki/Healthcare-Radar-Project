@@ -19,18 +19,13 @@ function plotBreathResults(results, handles, opts)
     set(handles.disp2, 'XData', results.displacement.time, ...
                        'YData', results.displacement.data2);
     if(~isempty(opts.RTrows))
-        set(handles.disp1.Parent.Title, 'String', join(['Displacement [mm],  RT rows: ' strrep(string(opts.RTrows), " ", ", ")]))
+        set(handles.disp1.Parent.Title, 'String', join(['Displacement [mm]  (Breath signal),  Range cell: ' strrep(string(opts.RTrows), " ", ", ")]))
     end
     
     % 3. SSTFT
-    cdata_sstft = results.sstft.spectrogram;
-    cdata_sstft = abs(cdata_sstft);
-    thresh = quantile(nonzeros(cdata_sstft),0.5,"all");
-    cdata_sstft(cdata_sstft < thresh) = thresh;
-    cdata_sstft = db(cdata_sstft);
     set(handles.sstftImg, 'XData', results.sstft.t, ...
                           'YData', results.sstft.f, ...
-                          'CData', cdata_sstft);
+                          'CData', results.sstft.cdata_sstft);
     set(handles.sstftImg.Parent, 'XLim', [min(results.sstft.t) max(results.sstft.t)], ...
                               'YLim', [min(results.sstft.f) max(results.sstft.f)]);
 

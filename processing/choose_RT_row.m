@@ -1,13 +1,16 @@
-function [slow_time_signal,row] = choose_RT_row(RT)
+function [slow_time_signal,row, RT_processed, choice_fun] = choose_RT_row(RT)
 %CHOOSE_RT_ROW This function can choose the best range time row with
 %highest probability of vital signs signal presence.
-% To be improved...
 
 % maximum amplitude after MTI
-[~,row] = max(mean(abs(mti(RT.')), 1));
+RT_processed = abs(mti(RT.')).'; 
 
-% maximum amplitude
-% [~,row] = max(mean(abs(RT), 2));
+% % alternatively, maximum amplitude
+% RT_processed = abs(RT);
+
+choice_fun  = mean(RT_processed, 2);
+choice_fun(1:3) = 0; % there is an offset range we want to discard
+[~,row] = max(choice_fun);
 
 slow_time_signal = RT(row, :);
 end

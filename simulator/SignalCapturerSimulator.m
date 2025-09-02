@@ -16,20 +16,26 @@ classdef SignalCapturerSimulator < handle
         speedResolution
         maxRange
         TotalRecLength
+        TimeOffset
 
         RecFilePath
+        GeneratePause
     end
     
     methods
         function obj = SignalCapturerSimulator(opts)
             arguments
-                opts.TotalRecLength = 20 % total recording of pure signal (excluding breaks) [s]
+                opts.TotalRecLength = 20 % total recording of signal [s]
+                opts.TimeOffset = 0 % Time offset from start of the file [s]
                 opts.RecFilePath = "rec" + filesep + "phaser_rec_11-Jun-2025_14-08-17_max1mps.mat" % File path of the pre-recorded data
+                opts.GeneratePause = 1; % if we want to wait for the result
             end
 
             obj.fc = 10e9; % rf carrier frequency is ~10 GHz
             obj.TotalRecLength = opts.TotalRecLength;
             obj.RecFilePath = opts.RecFilePath;
+            obj.GeneratePause =  opts.GeneratePause;
+            obj.TimeOffset = opts.TimeOffset;
         end
 
         function configure(obj)
@@ -46,17 +52,23 @@ classdef SignalCapturerSimulator < handle
             else
                 data_full = file.data1;
             end
-            Ncaptures = find(file.times_post_tx < obj.TotalRecLength, 1, "last");
+            Capture_first_idx = find(file.times_post_tx > obj.TimeOffset, 1, "first");
+            Capture_last_idx = find(file.times_post_rx < obj.TimeOffset + obj.TotalRecLength, 1, "last");
+            Ncaptures = Capture_last_idx - Capture_first_idx + 1;
 
             segment_duration = size(data_full,2) / (length(file.times_post_tx) * file.fs);
             samples_per_segment = round(segment_duration * file.fs);
             
-            idx_end = Ncaptures * samples_per_segment;
-            obj.data = data_full(:, 1:idx_end);
+            idx_end = Capture_last_idx * samples_per_segment;
+            start_idx = (Capture_first_idx - 1) * samples_per_segment + 1;
+            obj.data = data_full(:, start_idx:idx_end);
             obj.prf = file.prf;
-            obj.times_post_tx = file.times_post_tx(1:Ncaptures);
+            obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
+            obj.times_post_tx = obj.times_post_tx - file.times_pre_tx(Capture_first_idx);
             
-            pause(file.times_post_rx(Ncaptures))
+            if(obj.GeneratePause)
+                pause(file.times_post_rx(Capture_last_idx) - file.times_pre_tx(Capture_first_idx))
+            end
         end
     end
 end

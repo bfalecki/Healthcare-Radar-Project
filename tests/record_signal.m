@@ -57,7 +57,7 @@ nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a P
 % fs = max(ceil(2*fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
 % nSamples = ceil(tpulse * nPulses * fs); % Get the total number of samples in a PRP
 
-nCaptures = round(30/(frame_len/1.5)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
+nCaptures = round(1/(frame_len)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
 
 if(nSamples > 2^20)
     error("Too much nPulses per frame (nSamples > 2^20)")
