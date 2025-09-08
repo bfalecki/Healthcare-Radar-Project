@@ -1,4 +1,4 @@
-subfolder = "meas4_breath";
+subfolder = "test_perspektywy\back\wybrane";
 results_path = "results" + filesep + subfolder + filesep;
 files = dir(results_path + "*.mat");
 
@@ -34,7 +34,7 @@ for k = 1:length(files)
     plotBreathResults(file.results_breath, handles_breath, "RTrows", file.RTrow_vect);
     plotHeartbeatResults(file.results_heartbeat, handles_heartbeat);
 
-    % pause(1);
+    pause(1);
 end
 
 

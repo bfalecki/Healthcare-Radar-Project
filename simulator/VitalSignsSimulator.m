@@ -1,8 +1,8 @@
-classdef VitalSignsSimulator
+classdef VitalSignsSimulator < handle
     %VITALSIGNSSIMULATOR Summary of this class goes here
     %   Detailed explanation goes here
     
-    properties (Access = private)
+    properties
 
 
         % VITAL SIGNS PARAMETERS
@@ -28,6 +28,15 @@ classdef VitalSignsSimulator
         max_fd % max unambiguous Doppler frequency [Hz]
         max_vd % max unambiguous Doppler velocity [m/s]
 
+        % output waveforms
+        breath_signal_displ
+        breath_signal_vel
+        heartbeat_signal_displ
+        heartbeat_signal_vel
+        vital_signs_signal_vel
+        vital_signs_signal_displ
+        phase_signal
+        radar_signal_raw
     end
 
     properties (Access = public)
@@ -82,24 +91,25 @@ classdef VitalSignsSimulator
             % simulate signal reflected from the human chest
             t = 0:1/obj.PRF:obj.t_max;
             
-            breath_signal_displ = obj.displ_max_breath*sin(2*pi*obj.f_breath*t); % displacement signal of breath separated
-            breath_signal_vel = obj.v_max_breath*cos(2*pi*obj.f_breath*t); % velocity signal of breath
+            obj.breath_signal_displ = obj.displ_max_breath*sin(2*pi*obj.f_breath*t); % displacement signal of breath separated
+            obj.breath_signal_vel = obj.v_max_breath*cos(2*pi*obj.f_breath*t); % velocity signal of breath
             
             heartbeat_envelope = obj.displ_max_heart*sin(2*pi*obj.f_heart*t);
             heartbeat_envelope = heartbeat_envelope.*(heartbeat_envelope > 0); % regarding only positive envelope values
             % displacement signal of heartbeat
-            heartbeat_signal_displ = sin(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope;
+            obj.heartbeat_signal_displ = sin(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope;
             % velocity signal of heartbeat
-            heartbeat_signal_vel = cos(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope/obj.displ_max_heart*obj.v_max_heart;
+            obj.heartbeat_signal_vel = cos(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope/obj.displ_max_heart*obj.v_max_heart;
             
             % connected signals
-            vital_signs_signal_vel = heartbeat_signal_vel + breath_signal_vel;
-            vital_signs_signal_displ = heartbeat_signal_displ + breath_signal_displ;
+            obj.vital_signs_signal_vel = obj.heartbeat_signal_vel + obj.breath_signal_vel;
+            obj.vital_signs_signal_displ = obj.heartbeat_signal_displ + obj.breath_signal_displ;
             
-            fd_signal = -2*vital_signs_signal_vel/obj.c * obj.fc; % Doppler frequency signal [Hz]
-            phase_signal = -4*pi*vital_signs_signal_displ/obj.lambda; % phase of the signal [rad]
+            fd_signal = -2*obj.vital_signs_signal_vel/obj.c * obj.fc; % Doppler frequency signal [Hz]
+            obj.phase_signal = -4*pi*obj.vital_signs_signal_displ/obj.lambda; % phase of the signal [rad]
             % radar complex signal in baseband (single range cell)
-            radar_signal_raw = awgn(exp(1j*phase_signal), obj.SNR);
+            radar_signal_raw = awgn(exp(1j*obj.phase_signal), obj.SNR);
+            obj.radar_signal_raw = radar_signal_raw;
         end
     end
 end

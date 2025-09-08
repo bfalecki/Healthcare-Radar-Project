@@ -4,7 +4,7 @@ clearvars -except pool
 % actual measurment using hardware
 frameLen = 1.87;
 save_signal = 1; % TODO, possibly save manually after user-break
-sc = SignalCapturer("TotalRecLength",frameLen*3,"FrameLength",frameLen, "DoSave",0);
+sc = SignalCapturer("TotalRecLength",frameLen*1,"FrameLength",frameLen, "DoSave",0);
 
 % % simulation of recording
 % sc = SignalCapturerSimulator("TotalRecLength",20);
@@ -19,9 +19,9 @@ end
 
 sc.configure();
 
-windowSize = 3;       % number of frames in analysis window (min. 2)
+windowSize = 5;       % number of frames in analysis window (min. 2)
 hopSize = 1;          % step size in frames (min. 1)
-save_results = 0;
+save_results = 1;
 results_path = "results" + filesep;
 
 sigBuffer = {};       % FIFO buffer for radar signals
@@ -48,6 +48,7 @@ while true
 
     RT = fft(sc.data);
     [radar_signal, RT_row] = choose_RT_row(RT);
+    % RT_row = 5; radar_signal = RT(RT_row, :); % Hard fix
 
     % end of frame time
     frameEndSys = toc(timer);
