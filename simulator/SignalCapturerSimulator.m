@@ -6,8 +6,11 @@ classdef SignalCapturerSimulator < handle
     properties
         prf
         data
+        data1
+        data2
         fc
         times_post_tx
+        times_post_rx
         fmaxdop
         rampbandwidth
         lambda
@@ -17,6 +20,7 @@ classdef SignalCapturerSimulator < handle
         maxRange
         TotalRecLength
         TimeOffset
+        calweights
 
         RecFilePath
         GeneratePause
@@ -36,6 +40,8 @@ classdef SignalCapturerSimulator < handle
             obj.RecFilePath = opts.RecFilePath;
             obj.GeneratePause =  opts.GeneratePause;
             obj.TimeOffset = opts.TimeOffset;
+            obj.data1 = [];
+            obj.data2 = [];
         end
 
         function configure(obj)
@@ -47,11 +53,13 @@ classdef SignalCapturerSimulator < handle
             %
             file = load(obj.RecFilePath);
             obj.times_post_tx = file.times_post_tx;
+            obj.times_post_rx = file.times_post_rx;
             if(isfield(file, "data"))
                 data_full = file.data;
             else
                 data_full = file.data1;
             end
+
             Capture_first_idx = find(file.times_post_tx > obj.TimeOffset, 1, "first");
             Capture_last_idx = find(file.times_post_rx < obj.TimeOffset + obj.TotalRecLength, 1, "last");
             Ncaptures = Capture_last_idx - Capture_first_idx + 1;
@@ -62,6 +70,23 @@ classdef SignalCapturerSimulator < handle
             idx_end = Capture_last_idx * samples_per_segment;
             start_idx = (Capture_first_idx - 1) * samples_per_segment + 1;
             obj.data = data_full(:, start_idx:idx_end);
+            if(isfield(file, "data1")) % if we have also separated channels
+                if(~isempty(file.data1))
+                    obj.data1 = file.data1(:, start_idx:idx_end);
+                else
+                    obj.data1 = [];
+                end
+            end
+            if(isfield(file, "data2"))
+                if(~isempty(file.data2))
+                    obj.data2 = file.data2(:, start_idx:idx_end);
+                else
+                    obj.data2 = [];
+                end
+            end
+            if(isfield(file, "calweights"))
+                obj.calweights = file.calweights;
+            end
             obj.prf = file.prf;
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
             obj.times_post_tx = obj.times_post_tx - file.times_pre_tx(Capture_first_idx);

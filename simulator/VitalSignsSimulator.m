@@ -17,6 +17,8 @@ classdef VitalSignsSimulator < handle
         f_heart_osc % heartbeat-related oscillation frequency within heart cycle [Hz]
         displ_max_heart % maximum heartbeat-related displacements [m]
         v_max_heart % maximum heartbeat-related velocity [m/s]
+        RelativeSystole  % Part of heart cycle from, S1-S2 interval
+        S2Amplitude % S2 amplitude, Part of S1 amplitude.
 
         % RADAR PARAMETERS
         fc  % carrier frequency [Hz]
@@ -50,12 +52,14 @@ classdef VitalSignsSimulator < handle
             addParameter(p, 'BreathFrequency', 0.3); % Breath modeled as a sinusoid with given frequency 'BreathFrequency' [Hz]
             addParameter(p, 'BreathMaxDisplacement', 10e-3); % Maximum displacement of the breath movement [m]
             addParameter(p, 'HeartbeatFrequency', 1.2); % Heart cycles frequency [Hz] 
-            addParameter(p, 'HeartbeatOscillationFrequency', 8); % Heartbeat modeles as a sinusoid of frequency 'HeartbeatOscillationFrequency' [Hz] with cyclically varying envelope
+            addParameter(p, 'HeartbeatOscillationFrequency', 15); % Heartbeat modeles as a sinusoid of frequency 'HeartbeatOscillationFrequency' [Hz] with cyclically varying envelope
             addParameter(p, 'HeartbeatMaxDisplacement', 0.1e-3); % Maximum displacement of the heartbeat movement [m]
             addParameter(p, 'CarrierFrequency', 10e9); % Carrier frequency of the radar [Hz]
             addParameter(p, 'PRF', 100); % Pulse Repetition Frequency of the radar [Hz]
             addParameter(p, 'SNR', 40); % Signal to noise ratio [dB]
             addParameter(p, 'SimulationTime', 10); % Length of the simulated signal [s]
+            addParameter(p, 'RelativeSystole', 0.3); % Part of heart cycle from, S1-S2 interval
+            addParameter(p, 'S2Amplitude', 0.5); % S2 amplitude, Part of S1 amplitude.
             parse(p, varargin{:});
 
 
@@ -70,7 +74,8 @@ classdef VitalSignsSimulator < handle
             obj.f_heart_osc = p.Results.HeartbeatOscillationFrequency; % heartbeat-related oscillation frequency within heart cycle [Hz]
             obj.displ_max_heart = p.Results.HeartbeatMaxDisplacement; % maximum heartbeat-related displacements [m]
             obj.v_max_heart = obj.displ_max_heart * 2*pi * obj.f_heart_osc; % maximum heartbeat-related velocity [m/s]
-
+            obj.RelativeSystole = p.Results.RelativeSystole;
+            obj.S2Amplitude = p.Results.S2Amplitude;
 
             obj.fc = p.Results.CarrierFrequency; % carrier frequency [Hz]
             obj.lambda = obj.c/obj.fc; % wavelength [m]
@@ -94,10 +99,20 @@ classdef VitalSignsSimulator < handle
             obj.breath_signal_displ = obj.displ_max_breath*sin(2*pi*obj.f_breath*t); % displacement signal of breath separated
             obj.breath_signal_vel = obj.v_max_breath*cos(2*pi*obj.f_breath*t); % velocity signal of breath
             
-            heartbeat_envelope = obj.displ_max_heart*sin(2*pi*obj.f_heart*t);
-            heartbeat_envelope = heartbeat_envelope.*(heartbeat_envelope > 0); % regarding only positive envelope values
+            systole = obj.RelativeSystole * 1/obj.f_heart;
+            cycle_width = 0.3*systole; % can be parametrized later
+            heartbeat_envelope = obj.displ_max_heart*generate_HR_envelope(obj.f_heart,cycle_width, numel(t), obj.PRF);
+            % heartbeat_envelope = obj.displ_max_heart*sin(2*pi*obj.f_heart*t);
+            % heartbeat_envelope = heartbeat_envelope.*(heartbeat_envelope > 0); % regarding only positive envelope values
             % displacement signal of heartbeat
-            obj.heartbeat_signal_displ = sin(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope;
+            heartbeat_signal_displ_S1 = sin(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope;
+            % shifted to the left 
+            
+            heartbeat_signal_displ_S2 = obj.S2Amplitude * padarray(heartbeat_signal_displ_S1.', round(systole * obj.PRF), "pre").';
+            heartbeat_signal_displ_S2 = heartbeat_signal_displ_S2(1:numel(heartbeat_signal_displ_S1));
+            % obj.heartbeat_signal_displ = sin(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope;
+            obj.heartbeat_signal_displ = heartbeat_signal_displ_S1 + heartbeat_signal_displ_S2;
+
             % velocity signal of heartbeat
             obj.heartbeat_signal_vel = cos(2*pi*obj.f_heart_osc*t) .* heartbeat_envelope/obj.displ_max_heart*obj.v_max_heart;
             

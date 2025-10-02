@@ -49,7 +49,7 @@ signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
     "WindowWidth",0.25, "MaximumVisibleFrequency",40);
 
 % extract heart cycles signal
-heart_oscillation_freq_range = [0 20]; % Hz - fast oscillations of heartbeat
+heart_oscillation_freq_range = [0 30]; % Hz - fast oscillations of heartbeat
 heart_cycles_detected = extract_env_sp(sp,f_ax,"FreqRange",heart_oscillation_freq_range);
 
 % we need to determine segments start/end idxes on stft
@@ -77,12 +77,17 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
     "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",5);
 
 % then find tfridge
-f_low_hb_expected = 0.6; % minimum heart rate expected
-f_high_hb_expexcted = 3; % maximum heart rate expected
-[ridge, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
-    "JumpPenalty",0.02, "NuberOfRidges",1,...
+f_low_hb_expected = 50/60; % minimum heart rate expected is 50
+f_high_hb_expexcted = 120/60; % maximum heart rate expected is 100
+[ridges, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
+    "JumpPenalty",1, "NuberOfRidges",2,...
     "PossibleHighFrequency",f_high_hb_expexcted,...
     "PossibleLowFrequency",f_low_hb_expected);
+
+% [~,lower_ridge_nr] = min(mean(ridges));
+% ridge = ridges(:,lower_ridge_nr);
+
+ridge = ridges(:,1);
 
 % plot Result
 f_ax_bpm = f_ax_fsst*60;

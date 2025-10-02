@@ -26,7 +26,7 @@ function plotHeartbeatResults(results, handles)
 
     set(handles.sstft.ridge, 'XData', results.sstft.t, ...
                              'YData', results.sstft.ridge);
-    set(handles.sstft.img.Parent.Title, 'String', join(['Synchrosqueezed STFT; Heart Rate: ' string(mean(results.sstft.ridge)) ' BPM']))
+    set(handles.sstft.img.Parent.Title, 'String', join(['Synchrosqueezed STFT; Heart Rate: ' string(median(results.sstft.ridge)) ' BPM']))
     
 
     drawnow limitrate;

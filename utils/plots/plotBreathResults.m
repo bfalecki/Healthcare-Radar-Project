@@ -31,7 +31,7 @@ function plotBreathResults(results, handles, opts)
 
     set(handles.sstftRidge, 'XData', results.sstft.t, ...
                             'YData', results.sstft.ridge);
-    set(handles.sstftImg.Parent.Title, 'String', join(['Synchrosqueezed STFT; Breath Rate: ' string(mean(results.sstft.ridge)) ' BPM']))
+    set(handles.sstftImg.Parent.Title, 'String', join(['Synchrosqueezed STFT; Breath Rate: ' string(median(results.sstft.ridge)) ' BPM']))
     
     drawnow limitrate; % szybkie odświeżanie
 end

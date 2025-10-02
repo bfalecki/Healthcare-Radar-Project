@@ -21,7 +21,8 @@ colormap(flip(gray)); colorbar
 hRidge = line(nan,nan,'Color','r','LineWidth',1.5);
 ylabel("Breath Rate [BPM]"); xlabel("Time [s]");
 title("Synchrosqueezed STFT");
-setFigSize([0.6 0.525 0.4 0.475])
+% setFigSize([0.6 0.525 0.4 0.475])
+setFigSize([0.6 0.35 0.4 0.30])
 
 % zapisz uchwyty do struktury
 % handles_breath.phase = hPhase;

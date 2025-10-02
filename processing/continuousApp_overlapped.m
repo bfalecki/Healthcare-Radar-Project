@@ -3,7 +3,7 @@ clearvars -except pool
 
 % actual measurment using hardware
 frameLen = 1.87;
-save_signal = 1; % TODO, possibly save manually after user-break
+save_signal = 0; % TODO, possibly save manually after user-break to avoid data fragmentation
 sc = SignalCapturer("TotalRecLength",frameLen*1,"FrameLength",frameLen, "DoSave",0);
 
 % % simulation of recording
@@ -15,13 +15,17 @@ close all
 if(~exist("pool", "var"))
     delete(gcp('nocreate'))
     pool = parpool("Processes");
+elseif(pool.NumWorkers == 0) % pool expired
+    delete(pool);
+    delete(gcp('nocreate'))
+    pool = parpool("Processes");
 end
 
 sc.configure();
 
 windowSize = 5;       % number of frames in analysis window (min. 2)
 hopSize = 1;          % step size in frames (min. 1)
-save_results = 1;
+save_results = 0;
 results_path = "results" + filesep;
 
 sigBuffer = {};       % FIFO buffer for radar signals
@@ -47,6 +51,9 @@ while true
     sc.record();
 
     RT = fft(sc.data);
+    if(~any(RT(:)))
+        error("No valid data received. Try reconnecting the USB cable.")
+    end
     [radar_signal, RT_row] = choose_RT_row(RT);
     % RT_row = 5; radar_signal = RT(RT_row, :); % Hard fix
 
