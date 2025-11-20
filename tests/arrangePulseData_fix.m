@@ -1,19 +1,39 @@
-function outdata = arrangePulseData_fix(indata,rx,bf,bf_TDD)
+function outdata = arrangePulseData_fix(indata,rx,bf,bf_TDD, opts)
 % Rearrange a full stream of data into an nSample x nPulse data matrix.
 %
 % Copyright 2023 The MathWorks, Inc.
+
+arguments
+    indata 
+    rx 
+    bf 
+    bf_TDD 
+    opts.fs = 520834 % if we have to provide these values without using phaser objects
+    opts.tsweep = []
+    opts.tstartsweep = 0
+    opts.tpulse = []
+    opts.nPulses = []
+end
 
 % Combine data from channels with calibration weights
 if(size(indata,2) == 2)
     indata = applyDigitalCalWeights(indata);
 end
 
-% Extract timing from pluto and phaser setup
-fs = rx.SamplingRate;
-tsweep = double(bf.FrequencyDeviationTime) / 1e6;
-tstartsweep = bf_TDD.Ch0On;
-tpulse = bf_TDD.FrameLength / 1e3;
-nPulses = bf_TDD.BurstCount;
+if(isempty(opts.tpulse))
+    % Extract timing from pluto and phaser setup
+    fs = rx.SamplingRate;
+    tsweep = double(bf.FrequencyDeviationTime) / 1e6;
+    tstartsweep = bf_TDD.Ch0On;
+    tpulse = bf_TDD.FrameLength / 1e3;
+    nPulses = bf_TDD.BurstCount;
+else
+    fs = opts.fs;
+    tsweep = opts.tsweep;
+    tstartsweep = opts.tstartsweep;
+    tpulse = opts.tpulse;
+    nPulses = opts.nPulses;
+end
 
 % Get the number of samples into the pulse that the sweep starts
 sweepoffsetsamples = ceil(tstartsweep * fs);

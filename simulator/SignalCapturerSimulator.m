@@ -24,6 +24,8 @@ classdef SignalCapturerSimulator < handle
 
         RecFilePath
         GeneratePause
+        nPulsesPerFrame
+        nCaptures
     end
     
     methods
@@ -54,10 +56,26 @@ classdef SignalCapturerSimulator < handle
             file = load(obj.RecFilePath);
             obj.times_post_tx = file.times_post_tx;
             obj.times_post_rx = file.times_post_rx;
-            if(isfield(file, "data"))
+            if(isfield(file, "data") && ~isempty(file.data))
                 data_full = file.data;
-            else
+            elseif(~isempty(file.data1))
                 data_full = file.data1;
+            elseif(isfield(file, "raw_data") && ~isempty(file.raw_data))
+                
+
+                slow_time_len = file.nCaptures*file.nPulsesPerFrame;
+                fast_time_len = round(file.tsweep * file.fs); % just like in the function
+                data_full = zeros(fast_time_len,slow_time_len);
+                for k = 1:file.nCaptures
+                    global_idxes_of_frame = (k-1) * file.rawDataLen + 1 : k * file.rawDataLen;
+                    slow_time_idxes_of_frame = (k-1) * file.nPulsesPerFrame + 1 : k * file.nPulsesPerFrame;
+                    data_full(:, slow_time_idxes_of_frame) = arrangePulseData_fix(file.raw_data(global_idxes_of_frame, :),file.rx,file.bf,file.bf_TDD, ...
+                        "fs",file.fs,"nPulses",file.nPulsesPerFrame,...
+                        "tpulse",file.tpulse, "tstartsweep",file.tStartCollection,"tsweep",file.tsweep);
+                end
+                % data_full = arrangePulseData_fix(file.raw_data,file.rx,file.bf,file.bf_TDD, ...
+                %     "fs",file.fs,"nPulses",file.nCaptures*file.nPulsesPerFrame,...
+                %     "tpulse",file.tpulse, "tstartsweep",file.tStartCollection,"tsweep",file.tsweep);
             end
 
             Capture_first_idx = find(file.times_post_tx > obj.TimeOffset, 1, "first");
@@ -87,9 +105,12 @@ classdef SignalCapturerSimulator < handle
             if(isfield(file, "calweights"))
                 obj.calweights = file.calweights;
             end
+
             obj.prf = file.prf;
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
             obj.times_post_tx = obj.times_post_tx - file.times_pre_tx(Capture_first_idx);
+            obj.nPulsesPerFrame = file.nPulsesPerFrame;
+            obj.nCaptures = file.nCaptures;
             
             if(obj.GeneratePause)
                 pause(file.times_post_rx(Capture_last_idx) - file.times_pre_tx(Capture_first_idx))

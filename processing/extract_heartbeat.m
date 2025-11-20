@@ -27,7 +27,8 @@ signal_filt = filter_noise_peaks(signal, ...
 % fix segment edge noise (put mean values to every edge) - helpful for
 % further interpolation
 FixEdgesDepth = 0.1;
-depth_samples = round(FixEdgesDepth * prf);
+depth_samples = round(segment_duration * FixEdgesDepth * prf);
+depth_samples(depth_samples < 1) = 1;
 signal_filt = fix_edges(signal_filt, start_samples,end_samples, depth_samples);
     
 
@@ -74,13 +75,13 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
 
 %% synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(heart_cycles_detected,fs_stft,...
-    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",5);
+    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",7);
 
 % then find tfridge
 f_low_hb_expected = 50/60; % minimum heart rate expected is 50
 f_high_hb_expexcted = 120/60; % maximum heart rate expected is 100
 [ridges, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
-    "JumpPenalty",1, "NuberOfRidges",2,...
+    "JumpPenalty",4, "NuberOfRidges",2,...
     "PossibleHighFrequency",f_high_hb_expexcted,...
     "PossibleLowFrequency",f_low_hb_expected);
 

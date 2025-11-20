@@ -60,7 +60,8 @@ if(nargout > 5)
     
     % fix segment edge noise (put mean values to every edge) - helpful for
     % further linear interpolation
-    depth_samples = round(FixEdgesDepth * PRF);
+    depth_samples = round(segmentDuration * FixEdgesDepth * PRF);
+    depth_samples(depth_samples < 1) = 1;
     phaseDiff = fix_edges(phaseDiff, start_samples,end_samples, depth_samples);
     
     % place NaNs in breaks

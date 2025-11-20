@@ -2,7 +2,8 @@ close all
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_14-37-21_strong34Hz.mat"; % range cell 10
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-19-46_strong19Hz.mat"; % range cell 11
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-35-13_strong54Hz.mat"; % range cell 11
-filepath = "rec" + filesep + "phaser_rec_02-Oct-2025_13-18-31_5min.mat";
+% filepath = "rec" + filesep + "phaser_rec_02-Oct-2025_13-18-31_5min.mat";
+filepath = "rec" + filesep + "phaser_rec_18-Nov-2025_15-01-06_vital-signs1.mat";
 sig_length = 1000; % signal length, including breaks [s]
 offset = 0; % start time, including breaks [s] 
 
@@ -38,10 +39,11 @@ results_heartbeat = extract_heartbeat(radar_signal,sc.prf,sc.times_post_tx, Plot
 
 compare_with_reference = 1;
 if(compare_with_reference)
-    % load reference measurement
-    ref_path = "reference\kalenji\eu2dfde107c18a00b528_2025-10-02_fitness.fit";
+    % load reference measurement (from decathloncoach)
+    % ref_path = "reference\kalenji\eu2dfde107c18a00b528_2025-10-02_fitness.fit";
+    ref_path = "reference\kalenji\eu2231dc9cce5eb99169_2025-11-18_fitness.fit"; % phaser_rec_18-Nov-2025_15-01-06_vital-signs1.mat
     [heart_rate_ref, time_ref] = parse_fit(ref_path);
-    time_ref = time_ref + hours(2); % UTC fix
+    time_ref = time_ref + hours(1); % UTC fix - or hours(2)
 
     % adjust radar measurement
     radar_t_relative = results_heartbeat.sstft.t;
@@ -60,5 +62,6 @@ if(compare_with_reference)
     ylabel("Heart rate [BPM]")
     legend("Radar", "Kalenji Reference")
     grid on
+    ylim([50 100])
 
 end

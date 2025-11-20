@@ -6,6 +6,7 @@ classdef SignalCapturer < handle
         save_path
         do_save
         SeparateChannels
+        save_raw
         maxRange
         rangeResolution
         maxSpeed
@@ -40,6 +41,8 @@ classdef SignalCapturer < handle
 
         size_data_dim2
         size_data_dim1
+        raw_data_len
+        raw_data
         data
         data1
         data2
@@ -64,7 +67,8 @@ classdef SignalCapturer < handle
                 opts.SpeedResolution = 1/100
                 opts.FrameLength = 1.5 % max 1.87 s
                 opts.TotalRecLength = 20 % total recording of pure signal (excluding breaks) [s]
-                opts.SeparateChannels = 0 % If we want to also save both channels as separate signals
+                opts.SeparateChannels = 0 % 1 If we want to also save both channels as separate signals
+                opts.SaveRaw = 0 % 1 If we want to save raw data without reshape
             end
 
             warning('off','MATLAB:system:ObsoleteSystemObjectMixin')
@@ -76,6 +80,7 @@ classdef SignalCapturer < handle
             obj.do_save = opts.DoSave;
             obj.SeparateChannels = opts.SeparateChannels;
             obj.TotalRecLength = opts.TotalRecLength;
+            obj.save_raw = opts.SaveRaw;
             
 
             % Put some requirements on the system
@@ -113,6 +118,7 @@ classdef SignalCapturer < handle
             obj.data = []; % connected channels
             obj.data1 = []; % channel1
             obj.data2 = []; % channel2
+            obj.raw_data = []; % raw parts
 
             if(obj.nSamples > 2^20)
                 error("Too much nPulses per frame (nSamples > 2^20)")
@@ -200,12 +206,17 @@ classdef SignalCapturer < handle
 
             obj.size_data_dim2 = obj.nPulses;
             obj.size_data_dim1 = ceil(obj.fs*obj.tsweep);
+            obj.raw_data_len = ceil(obj.fs*obj.tpulse*obj.nPulses);
             
             % allocation
-            obj.data = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
-            if(obj.SeparateChannels)
-                obj.data1 = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
-                obj.data2 = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
+            if(obj.save_raw == 1)
+                obj.raw_data = zeros(obj.raw_data_len*obj.nCaptures, 2);
+            else
+                obj.data = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
+                if(obj.SeparateChannels)
+                    obj.data1 = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
+                    obj.data2 = zeros(obj.size_data_dim1, obj.size_data_dim2*obj.nCaptures);
+                end
             end
             obj.time = zeros(1, obj.nCaptures);
             tic
@@ -214,11 +225,13 @@ classdef SignalCapturer < handle
             obj.times_post_burse = zeros(1, obj.nCaptures);
             obj.times_post_rx = zeros(1, obj.nCaptures);
             obj.calweights = loadCalibrationWeights().DigitalWeights; % save callibration weights
+
+
             for i = 1:obj.nCaptures
                 idx_start = obj.size_data_dim2*(i-1)+1;
                 idx_end = idx_start +obj.size_data_dim2-1;
                 % capture data
-                [raw_data, times_struct] = captureTransmitWf_timeStamps(obj.rx,obj.tx,obj.bf,obj.txWaveform);
+                [raw_data_part, times_struct] = captureTransmitWf_timeStamps(obj.rx,obj.tx,obj.bf,obj.txWaveform);
             
                 % time signatures
                 obj.time(i) = toc;
@@ -227,25 +240,37 @@ classdef SignalCapturer < handle
                 obj.times_post_burse(i) = times_struct.time_post_burse;
                 obj.times_post_rx(i) = times_struct.time_post_rx;
             
-                % % Remove excess data, rearrange into nSamples x nPulses
-                obj.data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data,obj.rx,obj.bf,obj.bf_TDD);
-                if(obj.SeparateChannels)
-                    obj.data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data(:,1),obj.rx,obj.bf,obj.bf_TDD);
-                    obj.data2(:,idx_start:idx_end) = arrangePulseData_fix(raw_data(:,2),obj.rx,obj.bf,obj.bf_TDD);
+                if(obj.save_raw == 1)
+                    assert(obj.raw_data_len == length(raw_data_part));
+                    idx_start_raw = (i - 1)*obj.raw_data_len + 1;
+                    idx_end_raw = i*obj.raw_data_len;
+                    obj.raw_data(idx_start_raw:idx_end_raw, :) = raw_data_part;
+                else
+
+                    % % Remove excess data, rearrange into nSamples x nPulses
+                    obj.data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part,obj.rx,obj.bf,obj.bf_TDD);
+                    if(obj.SeparateChannels)
+                        obj.data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,1),obj.rx,obj.bf,obj.bf_TDD);
+                        obj.data2(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,2),obj.rx,obj.bf,obj.bf_TDD);
+                    end
                 end
 
             end
 
-            if(obj.do_save)
+            if(obj.do_save) 
                 file_suffix = string(datetime("now"));
                 file_suffix = strrep(file_suffix, ":", "-");
                 file_suffix = strrep(file_suffix, " ", "_");
                 data = obj.data;
                 data1 = obj.data1;
                 data2 = obj.data2;
+                raw_data = obj.raw_data;
 
+                
+
+                rawDataLen = obj.raw_data_len;
                 fc = obj.fc;
-                fs = obj.fc;
+                fs = obj.fs;
                 prf = obj.prf;
                 tpulse = obj.tpulse;
                 rampbandwidth = obj.rampbandwidth;
@@ -260,10 +285,18 @@ classdef SignalCapturer < handle
                 times_post_burse = obj.times_post_burse;
                 times_post_rx = obj.times_post_rx;
                 calweights = obj.calweights;
-                save(obj.save_path + "phaser_rec_"+  file_suffix + ".mat", "data","data1","data2",...
+
+
+                tStartCollection = obj.tStartCollection;
+                nPulsesPerFrame = obj.nPulses;
+                nCaptures = obj.nCaptures;
+                tsweep = obj.tsweep;
+                save(obj.save_path + "phaser_rec_"+  file_suffix + ".mat","raw_data", "data","data1","data2",...
                     "fc", "fs", "prf","tpulse","rampbandwidth", ...
                     "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
-                    "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx", "calweights")
+                    "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx", "calweights", "rawDataLen",...
+                    "tsweep", "tStartCollection","nPulsesPerFrame", "nCaptures");
+                    
             end
         end
     end
