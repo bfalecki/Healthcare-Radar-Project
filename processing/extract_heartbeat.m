@@ -39,7 +39,7 @@ signal_filt = fill_gaps_interp(signal_filt,segments_idxes, "nearest");
 
 % % we need then high-pass filter to cancel clutter and breath movement in spectrogram
 phase_cutoff_freq_low = 5; % Hz
-signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
+signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf/2);
 
 
 
@@ -64,7 +64,7 @@ segments_idxes_stft = get_segments_idxes(start_samples_stft,end_samples_stft, le
 % we do not expect heart rate below 0.5 Hz, so better to get rid of it
 % before prediction (experimentally)
 cutoff_freq_low = 0.5;
-heart_cycles_detected = highpass(heart_cycles_detected,cutoff_freq_low / fs_stft);
+heart_cycles_detected = highpass(heart_cycles_detected,cutoff_freq_low / fs_stft/2);
 
 
 %% now we must perform signal prediction in breaks

@@ -1,5 +1,6 @@
 
-filepath = "rec" + filesep + "phaser_rec_18-Nov-2025_16-51-59_behavior1.mat";
+filepath = "rec" + filesep + "phaser_rec_28-Nov-2025_11-09-39_behavior.mat";
+% filepath = "rec" + filesep + "phaser_rec_18-Nov-2025_16-51-59_behavior1.mat";
 % filepath = "rec" + filesep +  "phaser_rec_19-Nov-2025_12-04-39.mat";
 % filepath = "rec" + filesep +  "phaser_rec_19-Nov-2025_11-55-39.mat";
 sig_length = 1000; % signal length, including breaks [s]

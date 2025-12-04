@@ -1,8 +1,12 @@
-clear, close all
+clear; close all;
 
-
-% sc = SignalCapturer("DoSave",1,"FrameLength",1.87,"TotalRecLength",3*60,"SeparateChannels",0,"MaxSpeed", 1);
-sc = SignalCapturer("DoSave",1,"FrameLength",0.2,"TotalRecLength",5,"SeparateChannels",0,"MaxSpeed", 10,"SaveRaw",1);
+sc = SignalCapturer("FrameLength",1.87,"TotalRecLength",20,"SeparateChannels",0,"MaxSpeed", 1,"SaveRaw",1);
+% sc = SignalCapturer("DoSave",1,"FrameLength",0.1,"TotalRecLength",200,"SeparateChannels",0,"MaxSpeed", 10,"SaveRaw",1);
 sc.configure();
+
+SteerAngle = -45; % negative: to the right from the Phaser's perspective
+                  % positive: to the left from the Phaser's perspective
+sc.steerBeam(SteerAngle);
 sc.record();
 
+sc.saveData();

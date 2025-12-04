@@ -20,7 +20,7 @@ classdef SignalCapturerSimulator < handle
         maxRange
         TotalRecLength
         TimeOffset
-        calweights
+        digitalweights
 
         RecFilePath
         GeneratePause
@@ -54,24 +54,35 @@ classdef SignalCapturerSimulator < handle
         function record(obj)
             %
             file = load(obj.RecFilePath);
+            if(isfield(file, "calweights")) % compatibility with old measurements
+                obj.digitalweights = file.calweights;
+            end
+            if(isfield(file, "digitalweights"))
+                obj.digitalweights = file.digitalweights;
+            end
+
             obj.times_post_tx = file.times_post_tx;
             obj.times_post_rx = file.times_post_rx;
             if(isfield(file, "data") && ~isempty(file.data))
                 data_full = file.data;
-            elseif(~isempty(file.data1))
+            elseif(~isempty(file.data1) && (~isfield(file, "data2")  && isempty(file.data2))) % ??? only data1
                 data_full = file.data1;
+                warning("We do not have second channel: this is only half performance probably!")
+            elseif(isfield(file, "data2") && ~isempty(file.data2)) % we have both channels to combine
+                data_full = file.data1 * conj(obj.digitalweights(1)) + file.data2 * conj(obj.digitalweights(2));
             elseif(isfield(file, "raw_data") && ~isempty(file.raw_data))
                 
 
                 slow_time_len = file.nCaptures*file.nPulsesPerFrame;
-                fast_time_len = round(file.tsweep * file.fs); % just like in the function
+                fast_time_len = ceil(file.tsweep * file.fs); % just like in the function
                 data_full = zeros(fast_time_len,slow_time_len);
                 for k = 1:file.nCaptures
                     global_idxes_of_frame = (k-1) * file.rawDataLen + 1 : k * file.rawDataLen;
                     slow_time_idxes_of_frame = (k-1) * file.nPulsesPerFrame + 1 : k * file.nPulsesPerFrame;
                     data_full(:, slow_time_idxes_of_frame) = arrangePulseData_fix(file.raw_data(global_idxes_of_frame, :),file.rx,file.bf,file.bf_TDD, ...
                         "fs",file.fs,"nPulses",file.nPulsesPerFrame,...
-                        "tpulse",file.tpulse, "tstartsweep",file.tStartCollection,"tsweep",file.tsweep);
+                        "tpulse",file.tpulse, "tstartsweep",file.tStartCollection,"tsweep",file.tsweep,...
+                        "digitalweights",obj.digitalweights);
                 end
                 % data_full = arrangePulseData_fix(file.raw_data,file.rx,file.bf,file.bf_TDD, ...
                 %     "fs",file.fs,"nPulses",file.nCaptures*file.nPulsesPerFrame,...
@@ -102,9 +113,7 @@ classdef SignalCapturerSimulator < handle
                     obj.data2 = [];
                 end
             end
-            if(isfield(file, "calweights"))
-                obj.calweights = file.calweights;
-            end
+
 
             obj.prf = file.prf;
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);

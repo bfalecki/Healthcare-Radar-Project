@@ -4,7 +4,6 @@ classdef SignalCapturer < handle
     
     properties
         save_path
-        do_save
         SeparateChannels
         save_raw
         maxRange
@@ -27,15 +26,15 @@ classdef SignalCapturer < handle
         nCaptures
         TotalRecLength
 
-        rx
+        % rx
         tx
         amp
 
         txWaveform
-        bf
+        % bf
         num_steps
         BW
-        bf_TDD
+        bf_TDD % what is this ????
         tStartRamp
         tStartCollection
 
@@ -51,7 +50,20 @@ classdef SignalCapturer < handle
         times_post_tx
         times_post_burse
         times_post_rx
-        calweights
+        % calweights % removed to avoid errors
+        calibrationweights % all callibration weights
+        analogweights % analog weights with applied callibration, and possibly beam steering, and tapering
+        digitalweights % digital weights with applied callibration, and possibly beam steering
+
+        fc_hb100
+        ai % antenna interactor
+        file_suffix
+        % elementLocation % constant positions of elements - not necessary
+
+        SteerAngle
+        Tapering
+        SidelobeLevel
+        nConstSidelobes
 
     end
     
@@ -60,24 +72,29 @@ classdef SignalCapturer < handle
         function obj = SignalCapturer(opts)
             arguments
                 opts.SavePath = "rec" + filesep
-                opts.DoSave = 1 % save to file
                 opts.MaxRange = 10
                 opts.RangeResolution = 1/3 % min. 1/3
                 opts.MaxSpeed = 1 % 1 m/s determinates PRF of 133.4256 Hz
                 opts.SpeedResolution = 1/100
                 opts.FrameLength = 1.5 % max 1.87 s
-                opts.TotalRecLength = 20 % total recording of pure signal (excluding breaks) [s]
+                opts.TotalRecLength = 20 % total recording (including breaks) [s]
                 opts.SeparateChannels = 0 % 1 If we want to also save both channels as separate signals
                 opts.SaveRaw = 0 % 1 If we want to save raw data without reshape
             end
 
             warning('off','MATLAB:system:ObsoleteSystemObjectMixin')
             
+            % load callibration data
+            calibrationweights = loadCalibrationWeights();
+            load('HB100_Fc.mat','fc_hb100'); % probably not necessary
+            obj.calibrationweights = calibrationweights;
+            obj.fc_hb100 = fc_hb100;
+
             % Put some requirements on the system
-            
+
+
             
             obj.save_path = opts.SavePath;
-            obj.do_save = opts.DoSave;
             obj.SeparateChannels = opts.SeparateChannels;
             obj.TotalRecLength = opts.TotalRecLength;
             obj.save_raw = opts.SaveRaw;
@@ -111,8 +128,8 @@ classdef SignalCapturer < handle
             obj.fs = max(ceil(2*obj.fmaxbeat),520834); % Set sample rate based on the maximum beat frequency or the minimum rate of the pluto.
             obj.nSamples = ceil(obj.tpulse * obj.nPulses * obj.fs); % Get the total number of samples in a PRP
             
-
-            obj.nCaptures = round(obj.TotalRecLength/(obj.frame_len)); % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
+            break_length = 0.6171 * obj.frame_len +  0.1027;
+            obj.nCaptures = round(obj.TotalRecLength/(obj.frame_len+break_length))+1; % number of frames, in this configuration, 1 frame = 1.5s recording + 1s break
             obj.nCaptures(obj.nCaptures == 0) = 1;
 
             obj.data = []; % connected channels
@@ -123,55 +140,138 @@ classdef SignalCapturer < handle
             if(obj.nSamples > 2^20)
                 error("Too much nPulses per frame (nSamples > 2^20)")
             end
+
+            %%% this is done in AntennaInteractor in a different way
+            % lambda = freq2wavelen(10.7e9);
+            % spacing = lambda/2;
+            % array = phased.ULA(NumElements=8,ElementSpacing=spacing);
+            % obj.elementLocation = array.getElementPosition();
+
+            % set default values of weights
+            obj.analogweights = obj.calibrationweights.AnalogWeights;
+            obj.digitalweights = obj.calibrationweights.DigitalWeights;
+
+            obj.SteerAngle = [];
+            obj.Tapering = [];
+            obj.SidelobeLevel = [];
+            obj.nConstSidelobes = [];
+
         end
+
+        function steerBeam(obj,SteerAngle, opts)
+
+            arguments
+                obj 
+                SteerAngle = 0 % steer beam to the desired angle -90...90, [] -> disabled
+                opts.Tapering = 1 % 1 - enable patterin tapering, 0 disable pattern tapering - when opts.SteerAngle = [] -> disabled
+                opts.SidelobeLevel = -30 % for tapering: sidelobe level using Taylor window
+                opts.nConstSidelobes = 2 % for tapering:  number of nearly constant-level sidelobes adjacent to the mainlobe
+            end
+
+            obj.SteerAngle = SteerAngle;
+            obj.Tapering = opts.Tapering;
+            obj.SidelobeLevel = opts.SidelobeLevel;
+            obj.nConstSidelobes = opts.nConstSidelobes;
+
+            if(~isempty(obj.SteerAngle)) % Antenna_Pattern_Lab.mlx
+                % Get the steering vector that directs the beam in the desired
+                % direction
+
+                if(opts.Tapering) % Pattern_Tapering_Lab.mlx
+                    % First we generate the Taylor window for the desired number of sidelobes at the desired sidelobe level.
+                    nElements = 8;
+                    normalizeResults = 1;
+                    taper = taylorwin(nElements,opts.nConstSidelobes,opts.SidelobeLevel);
+                    % Next we normalize the taper amplitude and reshape it so into the correct shape for the subarrays on the Phaser.
+                    taper = taper / max(taper);
+                    taper = [taper(1:4) taper(5:8)];
+                    % Finally, we adjust the taper using the calibration 
+                    % weights and set the new weights on the AntennaInteractor. 
+                    % These new weights will be used to generate the beam pattern 
+                    % instead of the default calibration weights. 
+                    % We normalize the tapering for each subarray before updating the weights.
+                    taper = analogWeightsCalAdjustment(taper,obj.calibrationweights.AnalogWeights);
+                    if normalizeResults == 1
+                        taper = taper ./ max(abs(taper));
+                    end
+                    obj.ai.updateAnalogWeights(taper);
+                end
+
+                % now we must to do this step from AntennaInteractor::capturePattern
+                    % [analogweights,digitalweights] = this.getAllWeights(steerangles(ii));
+                defaultAnalogWeights = obj.ai.AnalogWeights; % already tapered if enabled
+                defaultDigitalWeights = obj.ai.DigitalWeights; % already tapered if enabled
+                % get steering weights
+                uncalanalogweights = obj.ai.SubSteer(obj.ai.Fc,obj.SteerAngle);
+                uncaldigitalweights = obj.ai.ArraySteer(obj.ai.Fc,obj.SteerAngle);
+                % Apply calibration weights
+                obj.analogweights = analogWeightsCalAdjustment(uncalanalogweights,defaultAnalogWeights);
+                obj.digitalweights = digitalWeightsCalAdjustment(uncaldigitalweights,defaultDigitalWeights);
+
+
+                % THIS SOLUTION ALSO CAN BE FINE I THINK, but where are digitalwights???
+                % steerweights = steervec(obj.elementLocation/freq2wavelen(obj.fc),[opts.SteerAngle;0]);
+                % 
+                % % Set the analog beamforming weights on the Phaser board to steer the beam,
+                % % adjusting for calibration. First we have to rearrange them into two
+                % % columns - one for each subarray.
+                % analogsteer = analogWeightsCalAdjustment([steerweights(1:4) steerweights(5:8)],obj.ai.AnalogWeights); % already updated if tapering enabled
+                % elementEnable = ones(size(analogsteer)); % enable all elements
+                
+                % then apply digital weights
+                setAnalogBfWeights(obj.ai.ArrayControl, obj.analogweights);
+                %%%% the next step is: rx(), and then: data = rx()
+                    % patternData(:,ii) = rxdata * conj(digitalweights);
+            end
+
+        end
+
         function configure(obj)
             %configure 
 
-            % Setup pluto
-            
-            % Setup the pluto
-            [obj.rx,obj.tx] = setupPluto();
-            
+
+
+            % Configure rx and bf at once:
+            [~,obj.tx] = setupPluto(); % just to get the tx handle - this function is performed again in the following constructor
+            obj.ai = AntennaInteractor(obj.fc,obj.calibrationweights);
+
             % Setup pluto sampling
-            obj.rx.SamplesPerFrame = obj.nSamples;
-            obj.rx.SamplingRate = obj.fs;
-            
+            obj.ai.PlutoControl.SamplesPerFrame = obj.nSamples;
+            obj.ai.PlutoControl.SamplingRate = obj.fs;
+
             % Setup transmitter
             obj.tx.SamplingRate = obj.fs;
             obj.tx.EnabledChannels = [1,2];
-            obj.tx.CenterFrequency = obj.rx.CenterFrequency;
+            obj.tx.CenterFrequency = obj.ai.PlutoControl.CenterFrequency;
             obj.tx.AttenuationChannel0 = -80;
             obj.tx.AttenuationChannel1 = -3;
             obj.tx.EnableCyclicBuffers = true;
             obj.tx.DataSource = "DMA";
-            
+
             % This is where you could create some modulation scheme, we just use a
-            % constant amplitude baseband signal.
+            % constant amplitude baseband signal.                % The same
             obj.amp = 0.9 * 2^15;
             obj.txWaveform = obj.amp*ones(obj.nSamples,2);
-            
-            % Setup the Phaser
-            
-            % Setup beamformers all to max gain with no phase shifts
-            obj.bf = setupPhaser(obj.rx,obj.fc);
-            obj.bf.RxPowerDown(:) = 0;
-            obj.bf.RxGain(:) = 127;
-            
+
             % Setup ADF4159
-            obj.bf.Frequency = (obj.fc+obj.rx.CenterFrequency)/4;
+            obj.ai.ArrayControl.Frequency = (obj.fc+obj.ai.PlutoControl.CenterFrequency)/4;
             obj.BW = obj.rampbandwidth / 4; 
             obj.num_steps = 2^9;
-            obj.bf.FrequencyDeviationRange = obj.BW;
-            obj.bf.FrequencyDeviationStep = ((obj.BW) / obj.num_steps);
-            obj.bf.FrequencyDeviationTime = obj.tsweep*1e6; % convert to us
-            obj.bf.RampMode = "single_sawtooth_burst"; % use a single sawtooth, other waveforms are available
-            obj.bf.TriggerEnable = true;  % start a ramp with TXdata
-            obj.bf.EnablePLL = true;
-            obj.bf.EnableTxPLL = true;
-            obj.bf.EnableOut1 = false; % send transmit out of SMA2
-            
+            obj.ai.ArrayControl.FrequencyDeviationRange = obj.BW;
+            obj.ai.ArrayControl.FrequencyDeviationStep = ((obj.BW) / obj.num_steps);
+            obj.ai.ArrayControl.FrequencyDeviationTime = obj.tsweep*1e6; % convert to us
+            obj.ai.ArrayControl.RampMode = "single_sawtooth_burst"; % use a single sawtooth, other waveforms are available
+            obj.ai.ArrayControl.TriggerEnable = true;  % start a ramp with TXdata
+            obj.ai.ArrayControl.EnablePLL = true;
+            obj.ai.ArrayControl.EnableTxPLL = true;
+            obj.ai.ArrayControl.EnableOut1 = false; % send transmit out of SMA2
+
+            % BEAM STEERING
+            % First, set default analog weights
+            obj.ai.updateAnalogWeights(obj.calibrationweights.AnalogWeights);
+
             % Setup the TDD engine
-            
+
             obj.bf_TDD = setupTddEngine();
             obj.tStartRamp = 0;
             obj.tStartCollection = 0;
@@ -195,9 +295,133 @@ classdef SignalCapturer < handle
             obj.bf_TDD.Ch2On = 0;
             obj.bf_TDD.Ch2Off = 0.1;
             obj.bf_TDD.Enable = 1;
-            
-            obj.rx(); % buffer clean
 
+            obj.ai.PlutoControl(); % buffer clean
+
+
+            %%%%%%%%% Old unwrapped solution
+
+            % % Setup pluto
+            % 
+            % % Setup the pluto
+            % [obj.rx,obj.tx] = setupPluto(); % was in  AntennaInteractor
+            % 
+            % % Setup pluto sampling
+            % obj.rx.SamplesPerFrame = obj.nSamples; % rewritten
+            % obj.rx.SamplingRate = obj.fs;  % rewritten
+            % 
+            % % Setup transmitter                % The same
+            % obj.tx.SamplingRate = obj.fs;
+            % obj.tx.EnabledChannels = [1,2];
+            % obj.tx.CenterFrequency = obj.rx.CenterFrequency;
+            % obj.tx.AttenuationChannel0 = -80;
+            % obj.tx.AttenuationChannel1 = -3;
+            % obj.tx.EnableCyclicBuffers = true;
+            % obj.tx.DataSource = "DMA";
+            % 
+            % % This is where you could create some modulation scheme, we just use a
+            % % constant amplitude baseband signal.                % The same
+            % obj.amp = 0.9 * 2^15;
+            % obj.txWaveform = obj.amp*ones(obj.nSamples,2);
+            % 
+            % 
+            % % Setup the Phaser
+            % 
+            % 
+            % % Setup beamformers all to max gain with no phase shifts
+            % obj.bf = setupPhaser(obj.rx,obj.fc);      % was in  AntennaInteractor
+            % obj.bf.RxPowerDown(:) = 0;
+            % obj.bf.RxGain(:) = 127;
+            % 
+            % % Setup ADF4159                   %% rewritted
+            % obj.bf.Frequency = (obj.fc+obj.rx.CenterFrequency)/4;
+            % obj.BW = obj.rampbandwidth / 4; 
+            % obj.num_steps = 2^9;
+            % obj.bf.FrequencyDeviationRange = obj.BW;
+            % obj.bf.FrequencyDeviationStep = ((obj.BW) / obj.num_steps);
+            % obj.bf.FrequencyDeviationTime = obj.tsweep*1e6; % convert to us
+            % obj.bf.RampMode = "single_sawtooth_burst"; % use a single sawtooth, other waveforms are available
+            % obj.bf.TriggerEnable = true;  % start a ramp with TXdata
+            % obj.bf.EnablePLL = true;
+            % obj.bf.EnableTxPLL = true;
+            % obj.bf.EnableOut1 = false; % send transmit out of SMA2
+            % 
+            % 
+            % % Setup the TDD engine - No changes
+            % 
+            % obj.bf_TDD = setupTddEngine();
+            % obj.tStartRamp = 0;
+            % obj.tStartCollection = 0;
+            % obj.bf_TDD.PhaserEnable = 1; % enable triggered mode
+            % obj.bf_TDD.Enable = 0;   % TDD must be disabled before changing properties
+            % obj.bf_TDD.EnSyncExternal = 1;
+            % obj.bf_TDD.StartupDelay = 0;
+            % obj.bf_TDD.SyncReset = 0;
+            % obj.bf_TDD.FrameLength = obj.tpulse*1e3;  %frame length in ms
+            % obj.bf_TDD.BurstCount = obj.nPulses; % Number of pulses in a CPI
+            % obj.bf_TDD.Ch0Enable = 1;
+            % obj.bf_TDD.Ch0Polarity = 0;
+            % obj.bf_TDD.Ch0On = obj.tStartRamp; % Time to start PLL sweep in a frame
+            % obj.bf_TDD.Ch0Off = obj.tStartRamp+0.1;
+            % obj.bf_TDD.Ch1Enable = 1;
+            % obj.bf_TDD.Ch1Polarity = 0;
+            % obj.bf_TDD.Ch1On = obj.tStartCollection; % Time to start data collection in a frame
+            % obj.bf_TDD.Ch1Off = obj.tStartCollection+0.1;
+            % obj.bf_TDD.Ch2Enable = 1;
+            % obj.bf_TDD.Ch2Polarity = 0;
+            % obj.bf_TDD.Ch2On = 0;
+            % obj.bf_TDD.Ch2Off = 0.1;
+            % obj.bf_TDD.Enable = 1;
+            % 
+            % obj.rx(); % buffer clean % rewritten
+
+        end
+
+        function saveData(obj)
+            data = obj.data;
+            data1 = obj.data1;
+            data2 = obj.data2;
+            raw_data = obj.raw_data;
+
+            
+
+            rawDataLen = obj.raw_data_len;
+            fc = obj.fc;
+            fs = obj.fs;
+            prf = obj.prf;
+            tpulse = obj.tpulse;
+            rampbandwidth = obj.rampbandwidth;
+            rx = obj.ai.PlutoControl;
+            bf = obj.ai.ArrayControl;
+            bf_TDD = obj.bf_TDD;
+            sweepslope = obj.sweepslope;
+            maxSpeed = obj.maxSpeed;
+            maxRange = obj.maxRange;
+            times_pre_tx = obj.times_pre_tx;
+            times_post_tx = obj.times_post_tx;
+            times_post_burse = obj.times_post_burse;
+            times_post_rx = obj.times_post_rx;
+            % calweights = obj.calweights;
+            calibrationweights = obj.calibrationweights;
+            analogweights = obj.analogweights;
+            digitalweights = obj.digitalweights; % the most important - to apply on our data
+            
+            SteerAngle =  obj.SteerAngle ;
+            Tapering = obj.Tapering ;
+            SidelobeLevel = obj.SidelobeLevel ;
+            nConstSidelobes = obj.nConstSidelobes ;
+
+            tStartCollection = obj.tStartCollection;
+            nPulsesPerFrame = obj.nPulses;
+            nCaptures = obj.nCaptures;
+            tsweep = obj.tsweep;
+            save(obj.save_path + "phaser_rec_"+  obj.file_suffix + ".mat","raw_data", "data","data1","data2",...
+                "fc", "fs", "prf","tpulse","rampbandwidth", ...
+                "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
+                "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx", "rawDataLen",...
+                "tsweep", "tStartCollection","nPulsesPerFrame", "nCaptures",...
+                "calibrationweights", "analogweights", "digitalweights",...
+                "SteerAngle", "Tapering", "SidelobeLevel", "nConstSidelobes");
         end
         
         function record(obj)
@@ -224,14 +448,14 @@ classdef SignalCapturer < handle
             obj.times_post_tx = zeros(1, obj.nCaptures);
             obj.times_post_burse = zeros(1, obj.nCaptures);
             obj.times_post_rx = zeros(1, obj.nCaptures);
-            obj.calweights = loadCalibrationWeights().DigitalWeights; % save callibration weights
+            % obj.calweights = loadCalibrationWeights().DigitalWeights; % save callibration weights
 
 
             for i = 1:obj.nCaptures
                 idx_start = obj.size_data_dim2*(i-1)+1;
                 idx_end = idx_start +obj.size_data_dim2-1;
                 % capture data
-                [raw_data_part, times_struct] = captureTransmitWf_timeStamps(obj.rx,obj.tx,obj.bf,obj.txWaveform);
+                [raw_data_part, times_struct] = captureTransmitWf_timeStamps(obj.ai.PlutoControl,obj.tx,obj.ai.ArrayControl,obj.txWaveform);
             
                 % time signatures
                 obj.time(i) = toc;
@@ -248,56 +472,18 @@ classdef SignalCapturer < handle
                 else
 
                     % % Remove excess data, rearrange into nSamples x nPulses
-                    obj.data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part,obj.rx,obj.bf,obj.bf_TDD);
+                    obj.data(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part,...
+                        obj.ai.PlutoControl,obj.ai.ArrayControl,obj.bf_TDD, "digitalweights",obj.digitalweights);
                     if(obj.SeparateChannels)
-                        obj.data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,1),obj.rx,obj.bf,obj.bf_TDD);
-                        obj.data2(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,2),obj.rx,obj.bf,obj.bf_TDD);
+                        obj.data1(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,1),obj.ai.PlutoControl,obj.ai.ArrayControl,obj.bf_TDD);
+                        obj.data2(:,idx_start:idx_end) = arrangePulseData_fix(raw_data_part(:,2),obj.ai.PlutoControl,obj.ai.ArrayControl,obj.bf_TDD);
                     end
                 end
 
             end
-
-            if(obj.do_save) 
-                file_suffix = string(datetime("now"));
-                file_suffix = strrep(file_suffix, ":", "-");
-                file_suffix = strrep(file_suffix, " ", "_");
-                data = obj.data;
-                data1 = obj.data1;
-                data2 = obj.data2;
-                raw_data = obj.raw_data;
-
-                
-
-                rawDataLen = obj.raw_data_len;
-                fc = obj.fc;
-                fs = obj.fs;
-                prf = obj.prf;
-                tpulse = obj.tpulse;
-                rampbandwidth = obj.rampbandwidth;
-                rx = obj.rx;
-                bf = obj.bf;
-                bf_TDD = obj.bf_TDD;
-                sweepslope = obj.sweepslope;
-                maxSpeed = obj.maxSpeed;
-                maxRange = obj.maxRange;
-                times_pre_tx = obj.times_pre_tx;
-                times_post_tx = obj.times_post_tx;
-                times_post_burse = obj.times_post_burse;
-                times_post_rx = obj.times_post_rx;
-                calweights = obj.calweights;
-
-
-                tStartCollection = obj.tStartCollection;
-                nPulsesPerFrame = obj.nPulses;
-                nCaptures = obj.nCaptures;
-                tsweep = obj.tsweep;
-                save(obj.save_path + "phaser_rec_"+  file_suffix + ".mat","raw_data", "data","data1","data2",...
-                    "fc", "fs", "prf","tpulse","rampbandwidth", ...
-                    "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
-                    "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx", "calweights", "rawDataLen",...
-                    "tsweep", "tStartCollection","nPulsesPerFrame", "nCaptures");
-                    
-            end
+            obj.file_suffix = string(datetime("now")); % file suffix containing time signature
+            obj.file_suffix = strrep(obj.file_suffix, ":", "-");
+            obj.file_suffix = strrep(obj.file_suffix, " ", "_");
         end
     end
 end

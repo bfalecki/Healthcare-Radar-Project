@@ -3,7 +3,7 @@ close all
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-19-46_strong19Hz.mat"; % range cell 11
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-35-13_strong54Hz.mat"; % range cell 11
 % filepath = "rec" + filesep + "phaser_rec_02-Oct-2025_13-18-31_5min.mat";
-filepath = "rec" + filesep + "phaser_rec_18-Nov-2025_15-01-06_vital-signs1.mat";
+filepath = "rec" + filesep + "phaser_rec_04-Dec-2025_14-53-06_-45.mat";
 sig_length = 1000; % signal length, including breaks [s]
 offset = 0; % start time, including breaks [s] 
 

@@ -13,11 +13,16 @@ arguments
     opts.tstartsweep = 0
     opts.tpulse = []
     opts.nPulses = []
+    opts.digitalweights = []
 end
 
-% Combine data from channels with calibration weights
+% Combine data from channels with calibration (and steering) weights
 if(size(indata,2) == 2)
-    indata = applyDigitalCalWeights(indata);
+    if(isempty(opts.digitalweights)) % saved in file
+        indata = applyDigitalCalWeights(indata);
+    else % wtih beam steering
+        indata = indata * conj(opts.digitalweights);
+    end
 end
 
 if(isempty(opts.tpulse))
