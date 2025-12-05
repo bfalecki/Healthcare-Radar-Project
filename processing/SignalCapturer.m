@@ -377,7 +377,7 @@ classdef SignalCapturer < handle
 
         end
 
-        function saveData(obj)
+        function [path, raw_data, data, data1,data2] = saveData(obj)
             data = obj.data;
             data1 = obj.data1;
             data2 = obj.data2;
@@ -415,13 +415,15 @@ classdef SignalCapturer < handle
             nPulsesPerFrame = obj.nPulses;
             nCaptures = obj.nCaptures;
             tsweep = obj.tsweep;
-            save(obj.save_path + "phaser_rec_"+  obj.file_suffix + ".mat","raw_data", "data","data1","data2",...
+            path = obj.save_path + "phaser_rec_"+  obj.file_suffix + ".mat";
+            % path_info = obj.save_path + "phaser_rec_"+  obj.file_suffix + "_info.mat";
+            save(path, "raw_data", "data","data1","data2",...
                 "fc", "fs", "prf","tpulse","rampbandwidth", ...
                 "rx", "bf", "bf_TDD","sweepslope","maxSpeed","maxRange",...
                 "times_pre_tx", "times_post_tx", "times_post_burse", "times_post_rx", "rawDataLen",...
                 "tsweep", "tStartCollection","nPulsesPerFrame", "nCaptures",...
                 "calibrationweights", "analogweights", "digitalweights",...
-                "SteerAngle", "Tapering", "SidelobeLevel", "nConstSidelobes");
+                "SteerAngle", "Tapering", "SidelobeLevel", "nConstSidelobes",'-v7.3');
         end
         
         function record(obj)

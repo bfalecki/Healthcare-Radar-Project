@@ -3,7 +3,7 @@ close all
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-19-46_strong19Hz.mat"; % range cell 11
 % filepath = "rec" + filesep + "phaser_rec_01-Oct-2025_15-35-13_strong54Hz.mat"; % range cell 11
 % filepath = "rec" + filesep + "phaser_rec_02-Oct-2025_13-18-31_5min.mat";
-filepath = "rec" + filesep + "phaser_rec_04-Dec-2025_14-53-06_-45.mat";
+filepath = "rec" + filesep + "phaser_rec_04-Dec-2025_18-46-23_vs2m.mat";
 sig_length = 1000; % signal length, including breaks [s]
 offset = 0; % start time, including breaks [s] 
 
@@ -41,7 +41,8 @@ compare_with_reference = 1;
 if(compare_with_reference)
     % load reference measurement (from decathloncoach)
     % ref_path = "reference\kalenji\eu2dfde107c18a00b528_2025-10-02_fitness.fit";
-    ref_path = "reference\kalenji\eu2231dc9cce5eb99169_2025-11-18_fitness.fit"; % phaser_rec_18-Nov-2025_15-01-06_vital-signs1.mat
+    % ref_path = "reference\kalenji\eu2231dc9cce5eb99169_2025-11-18_fitness.fit"; % phaser_rec_18-Nov-2025_15-01-06_vital-signs1.mat
+    ref_path = "C:\Users\bfalecki\Documents\praca_mgr\measurements\demorad\new\pomiary0412\2025-12-04.fit";
     [heart_rate_ref, time_ref] = parse_fit(ref_path);
     time_ref = time_ref + hours(1); % UTC fix - or hours(2)
 
