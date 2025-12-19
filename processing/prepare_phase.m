@@ -1,9 +1,11 @@
-function [phaseRaw,phaseDiffRaw,segmentsBounds, timeLags,segmentDuration,phase,phaseDiff] = prepare_phase(radarSignal,PRF,opts)
+function [phaseRaw,phaseDiffRaw,segmentsBounds, timeLags,segmentDuration,phase,phaseDiff] =...
+    prepare_phase(radarSignal,PRF,opts)
 %PREPARE_PHASE 
 % this function makes pre-processing of the raw signal to extract its phase
 
 % output:
-% phaseRaw - raw unwrapped phase of the signal (no interpolation, with reset_accumulated_phase funciton performed and breaks placed)
+% phaseRaw - raw unwrapped phase of the signal (no interpolation, with reset_accumulated_phase function
+%       performed and breaks placed)
 % phaseDiffRaw - raw differentiated phase of the signal (no interpolation, no peak filtering, no edge fix)
 % phaseDiff - filtered, differentiated phase of the signal with placed
 %       with linearly interpolated breaks
@@ -32,49 +34,31 @@ FNP_ThresholdMultiplier = opts.FNP_ThresholdMultiplier;
 FNP_ThresholdQuantile = opts.FNP_ThresholdQuantile;
 FixEdgesDepth = opts.FixEdgesDepth;
 
-% filling gaps in the signal
-[signal_filled, timeLags, segmentDuration, start_samples, end_samples] = ...
+[signal_filled, timeLags, segmentDuration, start_samples, end_samples] = ... % filling gaps in the signal
     fill_signal_gaps(radarSignal, FrameStartTimes, PRF);
-
 segmentsBounds = [start_samples;end_samples];
-
-% % % % phase anaylsis
-
-phaseRaw = unwrap(angle(signal_filled));
-
-% get rid of big first difference sample
-phaseRaw = reset_accumulated_phase(phaseRaw, start_samples,end_samples);  % save this for further possible processing
-
-% differentiation
-phaseDiffRaw = compl_diff(diff(phaseRaw)); % save this for further possible processing
-
+phaseRaw = unwrap(angle(signal_filled)); % % % % phase anaylsis: extracting unwrapped phase
+phaseRaw = reset_accumulated_phase(phaseRaw, start_samples,end_samples);% get rid of big first difference sample
+phaseDiffRaw = compl_diff(diff(phaseRaw));% differentiation
 if(nargout > 5)
     phaseDiff = phaseDiffRaw;
-
-    % outstanding vals filtering
-    if(FilterNoisePeaks)
+    if(FilterNoisePeaks)     % outstanding vals filtering
         phaseDiff = filter_noise_peaks(phaseDiff, "Display",0,"NeighborSize",FNP_NeighborSize,...
             "SegmentsBounds",[start_samples;end_samples],...
             "ThresholdMultiplier",FNP_ThresholdMultiplier,"ThresholdQuantile",FNP_ThresholdQuantile);
     end
-    
     % fix segment edge noise (put mean values to every edge) - helpful for
     % further linear interpolation
     depth_samples = round(FixEdgesDepth * PRF);
     phaseDiff = fix_edges(phaseDiff, start_samples,end_samples, depth_samples);
-    
-    % place NaNs in breaks
-    [phaseDiff, max_gap] = placeNans_RN(phaseDiff,start_samples, end_samples);
-    
-    % interpolate breaks
-    phaseDiff = fillmissing(phaseDiff, 'linear', 'MaxGap',max_gap*2);
-    
-    % Restore zeroes in NaN samples
-    phaseDiff(isnan(phaseDiff)) = 0;
-    
+
+    [phaseDiff, max_gap] = placeNans_RN(phaseDiff,start_samples, end_samples);% place NaNs in breaks
+    phaseDiff = fillmissing(phaseDiff, 'linear', 'MaxGap',max_gap*2); % interpolate breaks
+    phaseDiff(isnan(phaseDiff)) = 0; % Restore zeroes in NaN samples
     phase = cumsum(phaseDiff);
     
 end
 
 end
+
 

@@ -27,7 +27,8 @@ results_path = "results" + filesep;
 sigBuffer = {};       % FIFO buffer for radar signals
 timeBuffer = {};      % FIFO buffer for raw sc.times_post_tx
 startTimes = [];      % system timestamps (one per frame)
-startTimes_abs = datetime(); startTimes_abs = startTimes_abs([]);  % date of each frame start
+% date of each frame start
+startTimes_abs = datetime(); startTimes_abs = startTimes_abs([]);
 RTrowBuffer = [];     % range time numbers buffer
 counter = 0;          % frame counter
 
@@ -35,91 +36,135 @@ handles_breath = initBreathPlots();
 handles_heartbeat = initHeartbeatPlots();
 
 futures = [];
-
 timer = tic; % global reference for system time measurement
 
 while true
     % --- system timestamp BEFORE recording ---
     frameStartSys = toc(timer);   % time in seconds relative to loop start
     startTime_abs = datetime("now");
-
-    % --- acquisition step ---
-    sc.record();
-
-    RT = fft(sc.data);
-    [radar_signal, RT_row] = choose_RT_row(RT);
-    % RT_row = 5; radar_signal = RT(RT_row, :); % Hard fix
-
-    % end of frame time
-    frameEndSys = toc(timer);
-
-    % --- store signal and frame start time ---
-    sigBuffer{end+1}  = radar_signal;
+    sc.record();    % --- acquisition step ---
+    RT = fft(sc.data); % range compression
+    [radar_signal, RT_row] = choose_RT_row(RT); % range cell choice % or hard fix: RT_row = 5; radar_signal = RT(RT_row, :);
+    frameEndSys = toc(timer); % end of frame time
+    sigBuffer{end+1}  = radar_signal;      % --- store signal and metadata ---
     timeBuffer{end+1} = sc.times_post_tx;  % raw local times
-    startTimes(end+1) = frameStartSys;     % absolute system start
-    startTimes_abs(end+1) = startTime_abs;
-    RTrowBuffer(end+1) = RT_row;
-
-    % keep only the last windowSize frames
-    if numel(sigBuffer) > windowSize
-        sigBuffer  = sigBuffer(end-windowSize+1:end);
-        timeBuffer = timeBuffer(end-windowSize+1:end);
-        startTimes = startTimes(end-windowSize+1:end);
-        startTimes_abs = startTimes_abs(end-windowSize+1:end);
+    startTimes(end+1) = frameStartSys;     % global start time
+    startTimes_abs(end+1) = startTime_abs; % start datetime
+    RTrowBuffer(end+1) = RT_row;           % range cell number buffer
+    if numel(sigBuffer) > windowSize    % keep only the last windowSize frames
+        sigBuffer   = sigBuffer(end-windowSize+1:end);      timeBuffer = timeBuffer(end-windowSize+1:end);
+        startTimes  = startTimes(end-windowSize+1:end);     startTimes_abs = startTimes_abs(end-windowSize+1:end);
         RTrowBuffer = RTrowBuffer(end-windowSize+1:end);
     end
-
-    % --- frame counter ---
-    counter = counter + 1;
-
-    % --- trigger analysis every hopSize frames ---
-    if counter >= hopSize && numel(sigBuffer) == windowSize
-
-        % get current date
-        fragment_date_end = datetime("now");
-
-        % plot figures
-        if(exist("f1", "var"))
+    counter = counter + 1;    % --- frame counter ---
+    if counter >= hopSize && numel(sigBuffer) == windowSize  % --- trigger analysis every hopSize frames ---
+        fragment_date_end = datetime("now");   % get current date - end of fragment
+        if(exist("f1", "var"))         % plot figures
             results_breath = fetchOutputs(f1);
             results_heartbeat = fetchOutputs(f2);
-            
             plotBreathResults(results_breath, handles_breath,"RTrows",RTrow_vect);
             plotHeartbeatResults(results_heartbeat, handles_heartbeat);
-
             if(save_results)
                 save(results_path + file_name,"RTrow_vect", "fragment_date_start","results_breath","results_heartbeat");
             end
         end
-
-        % assign date of the start of the fragment
-        fragment_date_start = startTimes_abs(1);
+        fragment_date_start = startTimes_abs(1);        % assign date of the start of the fragment
         RTrow_vect = RTrowBuffer; % assign RTrow numbers to save to file
-
-        % determine results file name
-        file_suffix = string(fragment_date_start);
+        file_suffix = string(fragment_date_start);  % determine results file name
         file_suffix = strrep(file_suffix, ":", "-");
         file_suffix = strrep(file_suffix, " ", "_");
         file_name = "results_" + file_suffix + ".mat";
-
-        % normalize startTimes so that the first frame in window starts at 0
-        baseTime = min(startTimes);
-
-        adjustedTimes = {};
-        for k = 1:numel(timeBuffer)
+        baseTime = min(startTimes); % normalize startTimes so that the first frame in window starts at 0
+        adjustedTimes = {};         % ---
+        for k = 1:numel(timeBuffer) % ---
             adjustedTimes{end+1} = timeBuffer{k} + (startTimes(k) - baseTime);
-        end
-
-        % concatenate buffered frames into one longer signal and time axis
-        long_signal = cat(2, sigBuffer{:});
-        long_time   = cat(2, adjustedTimes{:});
-
-        % analysis in background
-        f1 = parfeval(pool, @extract_breath, 1, long_signal, sc.prf, sc.fc, long_time);
-        f2 = parfeval(pool, @extract_heartbeat, 1, long_signal, sc.prf, long_time);
-    
+        end                         % ---
+        long_signal = cat(2, sigBuffer{:});     % concatenate buffered frames into one longer signal and time axis
+        long_time   = cat(2, adjustedTimes{:}); % ---
+        f1 = parfeval(pool, @extract_breath, 1, long_signal, sc.prf, sc.fc, long_time); % analysis in background
+        f2 = parfeval(pool, @extract_heartbeat, 1, long_signal, sc.prf, long_time);     % ---
         futures = [futures f1 f2];  % futures collection
-
-        % reset frame counter -> offsets will be recomputed fresh for next window
-        counter = 0;
+        counter = 0; % reset frame counter -> offsets will be recomputed fresh for next window
     end
 end
+
+
+
+
+
+% % % just for presentation purposes
+
+% Generated by ChatGPT (partially)
+clearvars -except pool
+% actual measurment using hardware
+frameLen = 1.87;
+sc = SignalCapturer("TotalRecLength",...
+    frameLen*1,"FrameLength",frameLen,...
+    "DoSave",0);
+clear f1 f2 hBreath hHeartbeat
+close all
+if(~exist("pool", "var"))
+    delete(gcp('nocreate'))
+    pool = parpool("Processes");
+end
+sc.configure(); % configure Phaser
+% num of frames in analysis window (min. 2)
+windowSize = 5;       
+% step size in frames (min. 1)
+hopSize = 1;          
+% FIFO buffer for radar signals
+sigBuffer = {};       
+% FIFO buffer for raw sc.times_post_tx
+timeBuffer = {};      
+% system timestamps (one per frame)
+startTimes = [];      
+% date of each frame start
+startTimes_abs = datetime(); 
+startTimes_abs = startTimes_abs([]);
+% range time numbers buffer
+RTrowBuffer = [];     
+counter = 0;  % frame counter
+
+% prepare handles to figures
+handles_breath = initBreathPlots(); 
+handles_heartbeat=initHeartbeatPlots();
+timer = tic; % global reference for 
+% system time measurement
+
+
+
+% while true
+%     frameStartSys = toc(timer); startTime_abs = datetime("now"); % --- system timestamp BEFORE recording ---
+%     sc.record();    % --- acquisition step ---
+%     RT = fft(sc.data); [radar_signal, RT_row] = choose_RT_row(RT);% range compression and range cell choice
+%     frameEndSys = toc(timer); % end of frame time
+%     sigBuffer{end+1}  = radar_signal;      % --- store signal and metadata in buffers ---
+%     timeBuffer{end+1} = sc.times_post_tx;    startTimes(end+1) = frameStartSys;% raw local times, % global start time
+%     startTimes_abs(end+1) = startTime_abs;   RTrowBuffer(end+1) = RT_row;      % start datetime,  % range cell number
+%     if numel(sigBuffer) > windowSize    % keep only the last windowSize frames
+%         sigBuffer   = sigBuffer(end-windowSize+1:end);      timeBuffer = timeBuffer(end-windowSize+1:end);
+%         startTimes  = startTimes(end-windowSize+1:end);     startTimes_abs = startTimes_abs(end-windowSize+1:end);
+%         RTrowBuffer = RTrowBuffer(end-windowSize+1:end);
+%     end
+%     counter = counter + 1;    % --- frame counter ---
+%     if counter >= hopSize && numel(sigBuffer) == windowSize  % --- trigger analysis every hopSize frames ---
+%         fragment_date_end = datetime("now");   % get current date - end of fragment
+%         if(exist("f1", "var"))         % plot figures
+%             results_breath = fetchOutputs(f1);
+%             results_heartbeat = fetchOutputs(f2);
+%             plotBreathResults(results_breath, handles_breath,"RTrows",RTrow_vect);
+%             plotHeartbeatResults(results_heartbeat, handles_heartbeat);
+%         end
+%         fragment_date_start = startTimes_abs(1);        % assign date of the start of the fragment
+%         RTrow_vect = RTrowBuffer; % assign RTrow numbers
+%         baseTime = min(startTimes); adjustedTimes = {}; % fix startTimes: first frame in window must start at 0
+%         for k = 1:numel(timeBuffer) % ---
+%             adjustedTimes{end+1} = timeBuffer{k} + (startTimes(k) - baseTime);
+%         end                         % ---
+%         long_signal = cat(2, sigBuffer{:});     % concatenate buffered frames into one longer signal and time axis
+%         long_time   = cat(2, adjustedTimes{:}); % ---
+%         f1 = parfeval(pool, @extract_breath, 1, long_signal, sc.prf, sc.fc, long_time); % analysis in background
+%         f2 = parfeval(pool, @extract_heartbeat, 1, long_signal, sc.prf, long_time);     % ---
+%         counter = 0; % reset frame counter -> offsets will be recomputed fresh for next window
+%     end
+% end
