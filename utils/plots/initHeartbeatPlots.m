@@ -33,8 +33,10 @@ colormap(flip(gray)); colorbar
 hRidge = line(nan,nan,'Color','r','LineWidth',1.5,'LineStyle','--');
 ylabel("Heart Rate [BPM]"); xlabel("Time [s]");
 title("Synchrosqueezed STFT");
+
 % setFigSize([0.6 0.05 0.4 0.475]) % config 1
 setFigSize([0.7 0.05 0.3 0.3]) % config 2
+
 
 % zapisz uchwyty w strukturze
 % handlesHeartbeat.filteredPhase = hFilt;

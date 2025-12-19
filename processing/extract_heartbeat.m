@@ -27,7 +27,8 @@ signal_filt = filter_noise_peaks(signal, ...
 % fix segment edge noise (put mean values to every edge) - helpful for
 % further interpolation
 FixEdgesDepth = 0.1;
-depth_samples = round(FixEdgesDepth * prf);
+depth_samples = round(segment_duration * FixEdgesDepth * prf);
+depth_samples(depth_samples < 1) = 1;
 signal_filt = fix_edges(signal_filt, start_samples,end_samples, depth_samples);
     
 
@@ -38,7 +39,7 @@ signal_filt = fill_gaps_interp(signal_filt,segments_idxes, "nearest");
 
 % % we need then high-pass filter to cancel clutter and breath movement in spectrogram
 phase_cutoff_freq_low = 5; % Hz
-signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
+signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf/2);
 
 
 
@@ -49,7 +50,7 @@ signal_filt = highpass(signal_filt, phase_cutoff_freq_low / prf);
     "WindowWidth",0.25, "MaximumVisibleFrequency",40);
 
 % extract heart cycles signal
-heart_oscillation_freq_range = [0 20]; % Hz - fast oscillations of heartbeat
+heart_oscillation_freq_range = [5 15]; % Hz - fast oscillations of heartbeat
 heart_cycles_detected = extract_env_sp(sp,f_ax,"FreqRange",heart_oscillation_freq_range);
 
 % we need to determine segments start/end idxes on stft
@@ -63,7 +64,7 @@ segments_idxes_stft = get_segments_idxes(start_samples_stft,end_samples_stft, le
 % we do not expect heart rate below 0.5 Hz, so better to get rid of it
 % before prediction (experimentally)
 cutoff_freq_low = 0.5;
-heart_cycles_detected = highpass(heart_cycles_detected,cutoff_freq_low / fs_stft);
+heart_cycles_detected = highpass(heart_cycles_detected,cutoff_freq_low / fs_stft/2);
 
 
 %% now we must perform signal prediction in breaks
@@ -74,15 +75,21 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
 
 %% synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(heart_cycles_detected,fs_stft,...
-    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",5);
+    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",10);
 
 % then find tfridge
-f_low_hb_expected = 0.6; % minimum heart rate expected
-f_high_hb_expexcted = 3; % maximum heart rate expected
-[ridge, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
-    "JumpPenalty",0.02, "NuberOfRidges",1,...
+f_low_hb_expected = 50/60; % minimum heart rate expected is 50
+f_high_hb_expexcted = 120/60; % maximum heart rate expected is 100
+[ridges, synchrosqueezed, f_ax_fsst] = find_tfridge(synchrosqueezed, f_ax_fsst,...
+    "JumpPenalty",10, "NuberOfRidges",3,...
     "PossibleHighFrequency",f_high_hb_expexcted,...
     "PossibleLowFrequency",f_low_hb_expected);
+
+[~,lower_ridge_nr] = min(mean(ridges));
+[~, ridge_nearest_80_nr] =  min(abs(mean(ridges) - 80/60));
+ridge = ridges(:,ridge_nearest_80_nr);
+
+% ridge = ridges(:,1);
 
 % plot Result
 f_ax_bpm = f_ax_fsst*60;

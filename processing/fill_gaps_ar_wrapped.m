@@ -14,8 +14,12 @@ arguments
     segments_idxes
     segment_duration
     opts.PartConsidered = 1
+    opts.bidirectional = 0
+    opts.edge_ignore_length = 0; % discard N samples form prediction on ends and begginings of segments
 end
 
+% discard edge samples
+segments_idxes = side_by_side_vector_erose(segments_idxes, opts.edge_ignore_length);
 
 % First, we need to put nan instead of breaks
 signal(~segments_idxes) = nan;
@@ -30,7 +34,12 @@ p = segment_duration * fs * opts.PartConsidered; % part of segment
 p = round(p);
 p_max_possible = find(isnan(signal), 1,"first") - 1;
 p(p > p_max_possible) = p_max_possible;
-signal = fill_gaps_ar(signal, p);
+if(opts.bidirectional)
+    signal = fill_gaps_ar_bidirectional(signal, p);
+else
+    signal = fill_gaps_ar(signal, p);
+end
+
 
 % restore first break
 signal = [zeros( after_break_idx-1,1); signal];
