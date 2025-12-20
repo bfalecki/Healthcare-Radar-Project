@@ -17,7 +17,7 @@ end
     num_segments = length(time_starts);
 
     % Automatyczne wyliczenie długości segmentu
-    segment_duration = length(signal) / (num_segments * fs);
+    segment_duration = size(signal,2) / (num_segments * fs);
     if(isempty(opts.samples_per_segment))
         samples_per_segment = round(segment_duration * fs);
     else
@@ -27,7 +27,7 @@ end
     % Obliczenie całkowitej długości sygnału z czasem
     total_duration = time_starts(end) + segment_duration;
     total_samples = round(total_duration * fs);
-    signal_filled = ones(1, total_samples) * default_val;
+    signal_filled = ones(size(signal,1), total_samples) * default_val;
 
     % Wstawianie danych
     current_idx = 1;
@@ -41,20 +41,20 @@ end
         end_sample = (start_sample-opts.cut_first_samples) + samples_per_segment - 1;
         end_samples(i) = end_sample;
 
-        if current_idx + samples_per_segment - 1 > length(signal)
+        if current_idx + samples_per_segment - 1 > size(signal,2)
             warning('Niepełny ostatni segment – wstawiam tylko dostępne dane.');
-            segment = signal(current_idx:end);
-            signal_filled(start_sample:start_sample+length(segment)-1) = segment(1 + opts.cut_first_samples : end);
+            segment = signal(:,current_idx:end);
+            signal_filled(:,start_sample:start_sample+length(segment)-1) = segment(:,1 + opts.cut_first_samples : end);
             break;
         else
-            segment = signal(current_idx : current_idx + samples_per_segment - 1);
-            signal_filled(start_sample:end_sample) = segment(1 + opts.cut_first_samples : end);
+            segment = signal(:,current_idx : current_idx + samples_per_segment - 1);
+            signal_filled(:,start_sample:end_sample) = segment(:,1 + opts.cut_first_samples : end);
             current_idx = current_idx + samples_per_segment;
         end
     end
 
     % get segment indexes (logical)
-    segments_idxes = get_segments_idxes(start_samples,end_samples, length(signal_filled));
+    segments_idxes = get_segments_idxes(start_samples,end_samples, size(signal_filled,2));
 
-    t = (0:length(signal_filled)-1) / fs;
+    t = (0:size(signal_filled,2)-1) / fs;
 end
