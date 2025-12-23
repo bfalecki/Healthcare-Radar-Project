@@ -21,6 +21,9 @@ signal = compl_diff(diff(phase));
 [signal, t_resampled, segment_duration, start_samples, end_samples,segments_idxes] = ...
 fill_signal_gaps(signal, sc.times_post_tx, sc.prf);
 
+radar_signal_raw_filled = ...
+fill_signal_gaps(radar_signal_raw, sc.times_post_tx, sc.prf);
+
 figure(1);
 % measured signal needs to be filtered regarding outstanding peaks...
 signal_filt = filter_noise_peaks(signal, ...
@@ -31,4 +34,20 @@ signal_filt = filter_noise_peaks(signal, ...
 xlim([500 720])
 ylim([-0.16 0.16])
 title("Differentiated Phase - Removing Outstanding Values")
+setFigSize([0.2 0.2 0.35 0.4])
+
+%%
+figure(2)
+plot(signal)
+xlim([500 720])
+ylim([-0.16 0.16])
+title("Differentiated Phase Signal")
+setFigSize([0.2 0.2 0.35 0.4])
+ylabel("Radian per Sample")
+
+%%
+figure(3)
+plot(angle(radar_signal_raw_filled))
+xlim([500 720])
+title("Wrapped Phase")
 setFigSize([0.2 0.2 0.35 0.4])

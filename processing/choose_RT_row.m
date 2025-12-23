@@ -8,6 +8,7 @@ function [slow_time_signal,row, RT_processed, choice_fun] = choose_RT_row(RT)
 % % alternatively, maximum amplitude - best without clutter
 RT_processed = abs(RT(1:100, :));
 
+
 choice_fun  = mean(RT_processed, 2);
 choice_fun(1:4) = 0; % there is an offset range we want to discard
 [~,row] = max(choice_fun);
@@ -15,3 +16,8 @@ choice_fun(1:4) = 0; % there is an offset range we want to discard
 slow_time_signal = RT(row, :);
 end
 
+
+
+
+% % alternatively, maximum amplitude
+% RT_processed = abs(RT);

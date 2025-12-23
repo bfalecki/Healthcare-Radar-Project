@@ -2,18 +2,18 @@
 % and display its RT/RD maps, and also TF representation
 % and slow-time phase
 clear data data1 data2
-load("rec"+filesep+"phaser_rec_29-Aug-2025_16-10-22.mat")
+load("rec"+filesep+"phaser_rec_11-Jun-2025_14-08-17_max1mps.mat")
 
 % breath2s.mat - 2s-nagranie oddechu - ok. 1 m od nadajnika/odbiornika
 
-% if(~exist("data", "var"))
-%     data = data1; % data1 / data2
-% end
+if(~exist("data", "var"))
+    data = data1; % data1 / data2
+end
 
 % w = [0.8; exp(1j*2*pi * 0.5)];
 % w = [0 1];
-w = loadCalibrationWeights().DigitalWeights;
-data = data1*conj(w(1)) + data2*conj(w(2));
+% w = loadCalibrationWeights().DigitalWeights;
+% data = data1*conj(w(1)) + data2*conj(w(2));
 
 
 

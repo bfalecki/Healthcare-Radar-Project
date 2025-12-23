@@ -1,4 +1,5 @@
-subfolder = "test_perspektywy\back\wybrane";
+% subfolder = "test_perspektywy\back\wybrane";
+subfolder = "test_wysilku";
 results_path = "results" + filesep + subfolder + filesep;
 files = dir(results_path + "*.mat");
 
@@ -19,9 +20,11 @@ for k = 1:length(files)
     end
 
     breath_rate = file.results_breath.sstft.ridge;
-    breath_rate_time_ax = seconds(file.results_breath.sstft.t) + file.fragment_date_start;
-    heart_rate = file.results_heartbeat.sstft.ridge;
+
+    breath_rate_time_ax = seconds(file.results_breath.sstft.t) + file.fragment_date_start; 
     heart_rate_time_ax = seconds(file.results_heartbeat.sstft.t) + file.fragment_date_start;
+
+    heart_rate = file.results_heartbeat.sstft.ridge;
 
     breath_rate_cell{end+1} = breath_rate;
     breath_rate_time_ax_cell{end+1} = breath_rate_time_ax;
@@ -29,13 +32,21 @@ for k = 1:length(files)
     heart_rate_time_ax_cell{end+1} = heart_rate_time_ax;
 
     % adding time offset from the beggining
-    file.results_breath.displacement.time = file.results_breath.displacement.time + seconds(file.fragment_date_start - first_fragment_start);
+    % file.results_breath.displacement.time = file.results_breath.displacement.time + seconds(file.fragment_date_start - first_fragment_start);
 
     plotBreathResults(file.results_breath, handles_breath, "RTrows", file.RTrow_vect);
     plotHeartbeatResults(file.results_heartbeat, handles_heartbeat);
 
-    pause(1);
+    % pause(1);
 end
+%%
+save_folder = results_path;
+pref = "wysilek_";
+exportgraphics(figure(14),save_folder +pref+ "5_heart_rate_sstft.png");
+exportgraphics(figure(13),save_folder +pref+ "3_heartbeat_signal.png");
+exportgraphics(figure(12),save_folder +pref+ "2_heartbeat_stft.png");
+exportgraphics(figure(22),save_folder +pref+ "4_breath_rate_sstft.png");
+exportgraphics(figure(21),save_folder +pref+ "1_breath_signal.png");
 
 
 

@@ -125,6 +125,7 @@ classdef SignalCapturerSimulator < handle
             obj.rampbandwidth = file.rampbandwidth;
             obj.fs = file.fs;
 
+
             dt_end = extract_datetime_of_filepath(obj.RecFilePath);
             dt_start = dt_end - seconds(obj.times_post_rx(end));
             obj.signalStartTimeStamp = dt_start;

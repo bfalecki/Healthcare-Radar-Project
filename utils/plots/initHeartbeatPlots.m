@@ -13,7 +13,8 @@ colormap("jet"); colorbar
 ylim([0 inf]);
 title("Short Time Fourier Transform (Heartbeat detection)");
 xlabel("Time [s]"); ylabel("Frequency [Hz]");
-setFigSize([0.0 0.35 0.6 0.3])
+% setFigSize([0.0 0.35 0.6 0.3]) % config 1
+setFigSize([0.0 0.35 0.7 0.3]) % config 2
 
 % Figure 13 - Extracted Signal
 figure(13)
@@ -22,7 +23,8 @@ hAvail = plot(nan,nan,'LineWidth',2); hold off
 title("Signal Extracted from STFT (Heartbeat signal)");
 legend("Predicted","Available");
 xlabel("Time [s]");
-setFigSize([0.0 0.05 0.6 0.3])
+% setFigSize([0.0 0.05 0.6 0.3]) % config 1
+setFigSize([0.0 0.05 0.7 0.3]) % config 2
 
 % Figure 14 - Synchrosqueezed STFT
 figure(14)
@@ -31,8 +33,10 @@ colormap(flip(gray)); colorbar
 hRidge = line(nan,nan,'Color','r','LineWidth',1.5,'LineStyle','--');
 ylabel("Heart Rate [BPM]"); xlabel("Time [s]");
 title("Synchrosqueezed STFT");
-% setFigSize([0.6 0.05 0.4 0.475])
-setFigSize([0.6 0.05 0.4 0.30])
+
+% setFigSize([0.6 0.05 0.4 0.475]) % config 1
+setFigSize([0.7 0.05 0.3 0.3]) % config 2
+
 
 % zapisz uchwyty w strukturze
 % handlesHeartbeat.filteredPhase = hFilt;
