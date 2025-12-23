@@ -9,6 +9,7 @@ classdef SignalCapturerSimulator < handle
         data1
         data2
         fc
+        fs
         times_post_tx
         times_post_rx
         fmaxdop
@@ -26,6 +27,7 @@ classdef SignalCapturerSimulator < handle
         GeneratePause
         nPulsesPerFrame
         nCaptures
+        signalStartTimeStamp
     end
     
     methods
@@ -61,8 +63,6 @@ classdef SignalCapturerSimulator < handle
                 obj.digitalweights = file.digitalweights;
             end
 
-            obj.times_post_tx = file.times_post_tx;
-            obj.times_post_rx = file.times_post_rx;
             if(isfield(file, "data") && ~isempty(file.data))
                 data_full = file.data;
             elseif(~isempty(file.data1) && (~isfield(file, "data2")  && isempty(file.data2))) % ??? only data1
@@ -118,8 +118,16 @@ classdef SignalCapturerSimulator < handle
             obj.prf = file.prf;
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
             obj.times_post_tx = obj.times_post_tx - file.times_pre_tx(Capture_first_idx);
+            obj.times_post_rx = file.times_post_rx(Capture_first_idx:Capture_last_idx);
+            obj.times_post_rx = obj.times_post_rx - file.times_pre_tx(Capture_first_idx);
             obj.nPulsesPerFrame = file.nPulsesPerFrame;
             obj.nCaptures = file.nCaptures;
+            obj.rampbandwidth = file.rampbandwidth;
+            obj.fs = file.fs;
+
+            dt_end = extract_datetime_of_filepath(obj.RecFilePath);
+            dt_start = dt_end - seconds(obj.times_post_rx(end));
+            obj.signalStartTimeStamp = dt_start;
             
             if(obj.GeneratePause)
                 pause(file.times_post_rx(Capture_last_idx) - file.times_pre_tx(Capture_first_idx))

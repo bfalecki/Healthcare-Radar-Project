@@ -75,7 +75,7 @@ heart_cycles_detected = fill_gaps_ar_wrapped(heart_cycles_detected,...
 
 %% synchrosqueezing
 [synchrosqueezed,f_ax_fsst,t_ax_fsst] = synchrosqueezing_general(heart_cycles_detected,fs_stft,...
-    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3, "WindowWidth",10);
+    "FrequencyResolution",1/60,"MaximumVisibleFrequency",3,"WindowWidth",10);
 
 % then find tfridge
 f_low_hb_expected = 50/60; % minimum heart rate expected is 50

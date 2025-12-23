@@ -41,7 +41,7 @@ end
       normalize = 1;
  end
 
- if(~exist("cmap", "var") || (string(class(cmap)) == "double" && any(isnan(cmap))))
+ if(~exist("cmap", "var") || (isempty(cmap) || isscalar(cmap) && string(class(cmap)) == "double" && any(isnan(cmap))))
     cmap = "parula";
  end
 if(string(class(cmap)) == "string" && cmap == "inferno")
@@ -61,7 +61,7 @@ if(true_surf)
 end
 
 if(normalize == 1)
-    surf_to_plot = db(sp);
+    surf_to_plot = db(sp) - max(db(sp), [], "all");
 else
     surf_to_plot = sp;
 end
