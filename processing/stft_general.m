@@ -25,11 +25,12 @@ overlap_len = getSTFTOverlapLen(opts.DesiredTimeRes,length(window),new_fs);
 % helpful in exact bounds determination
 overlap_len_original_fs = overlap_len / new_fs * SamplingFrequency;
 
-% padd signal in the end
-signal = padarray(signal(:), round(length(window)/2), "post");
+signal = padarray(signal(:), round(length(window)/2), "symmetric");
+% signal = padarray(signal(:), round(length(window)/2), "post");
 
 % stft calculation
 [sp, f_ax, t_ax] = stft(signal, new_fs, "Window",window,"OverlapLength",overlap_len);
+t_ax = t_ax - length(window)/2/new_fs; % fix symmetric padd
 
 fs_stft = 1/(t_ax(2) - t_ax(1)); % time step of the STFT
 

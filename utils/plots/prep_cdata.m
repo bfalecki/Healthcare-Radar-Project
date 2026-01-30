@@ -11,5 +11,6 @@ end
     thresh = quantile(nonzeros(cdata),opts.QuantileVal,"all");
     cdata(cdata < thresh) = thresh;
     cdata = db(cdata);
+    cdata = cdata - max(cdata, [], "all");
 end
 

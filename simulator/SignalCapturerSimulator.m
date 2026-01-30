@@ -116,10 +116,11 @@ classdef SignalCapturerSimulator < handle
 
 
             obj.prf = file.prf;
+            offset_timestamp = file.times_pre_tx(Capture_first_idx);
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
-            obj.times_post_tx = obj.times_post_tx - file.times_pre_tx(Capture_first_idx);
+            obj.times_post_tx = obj.times_post_tx - offset_timestamp;
             obj.times_post_rx = file.times_post_rx(Capture_first_idx:Capture_last_idx);
-            obj.times_post_rx = obj.times_post_rx - file.times_pre_tx(Capture_first_idx);
+            obj.times_post_rx = obj.times_post_rx - offset_timestamp;
             obj.nPulsesPerFrame = file.nPulsesPerFrame;
             obj.nCaptures = file.nCaptures;
             obj.rampbandwidth = file.rampbandwidth;
@@ -127,7 +128,10 @@ classdef SignalCapturerSimulator < handle
 
 
             dt_end = extract_datetime_of_filepath(obj.RecFilePath);
-            dt_start = dt_end - seconds(obj.times_post_rx(end));
+            % dt_start = dt_end - seconds(file.times_post_rx(end)); % absolute start
+            dt_start = dt_end ...
+                - seconds(file.times_post_rx(end)) ... % total rec duration
+                + seconds(offset_timestamp); % offset included
             obj.signalStartTimeStamp = dt_start;
             
             if(obj.GeneratePause)
