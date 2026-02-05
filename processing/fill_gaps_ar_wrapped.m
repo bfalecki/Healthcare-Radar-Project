@@ -1,4 +1,4 @@
-function signal = fill_gaps_ar_wrapped(signal,fs, segments_idxes,segment_duration, opts)
+function [signal,p] = fill_gaps_ar_wrapped(signal,fs, segments_idxes,segment_duration, opts)
 %FILL_GAPS_AR_WRAPPED 
 % performs fill_gaps_ar on the signal based on the known segments idxes 
 % signal - signal to analyze
@@ -7,6 +7,10 @@ function signal = fill_gaps_ar_wrapped(signal,fs, segments_idxes,segment_duratio
 % segment_duration - signle segment duration [s]
 % PartConsidered - fraction of the part considered for the
 %       prediction 0 ... 1
+
+% output:
+% signal - predicted
+% p - assumed history size
 
 arguments
     signal
