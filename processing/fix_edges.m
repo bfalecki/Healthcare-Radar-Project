@@ -16,7 +16,7 @@ for k = 1:length(start_samples)
     % it adds one sample to the beggining, not to the end of signal.
     % In the second case, we would rather use end_samples(k)-1 instead of end_samples(k)
     % and start_samples(k) would be OK
-    samples_to_avg_start = start_samples(k)+1:start_samples(k)+depth;
+    samples_to_avg_start = start_samples(k)+1:start_samples(k)+depth+1;
     signal_fixed(start_samples(k)) = median(signal(samples_to_avg_start));
     samples_to_avg_end = end_samples(k) - depth:end_samples(k);
     signal_fixed(end_samples(k)) = median(signal(samples_to_avg_end));
