@@ -4,7 +4,8 @@ classdef SignalCapturerSimulator < handle
     % withous using physical hardware
     
     properties
-        prf
+        prf % actual PRF, 1/tpulse
+        prf_desired % the prf which was originally set in high-level capturing function
         data
         data1
         data2
@@ -115,7 +116,8 @@ classdef SignalCapturerSimulator < handle
             end
 
 
-            obj.prf = file.prf;
+            obj.prf_desired = file.prf;
+            obj.prf = 1/file.tpulse;
             offset_timestamp = file.times_pre_tx(Capture_first_idx);
             obj.times_post_tx = file.times_post_tx(Capture_first_idx:Capture_last_idx);
             obj.times_post_tx = obj.times_post_tx - offset_timestamp;

@@ -7,12 +7,17 @@ arguments
     f_ax % frequnecy axis
     opts.FreqRange = [min(f_ax) max(f_ax)] % frequency range to sum
     opts.LogScale = 0; % take in dB instead of abs()
+    opts.Normalize = 0; % normalize along Doppler axis
 end
 
 [~,freq_row_idx_low] = min(abs(f_ax - opts.FreqRange(1) ));
 [~,freq_row_idx_high] = min(abs(f_ax - opts.FreqRange(2) ));
 
 sp_to_sum = sp(freq_row_idx_low:freq_row_idx_high, :);
+if(opts.Normalize)
+    sp_to_sum = sp_to_sum ./ (sum(sp_to_sum,2));
+end
+
 
 if(opts.LogScale)
     min_nonzero = min(nonzeros(sp_to_sum(:)));

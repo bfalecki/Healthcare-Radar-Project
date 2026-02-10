@@ -26,6 +26,8 @@ overlap_len = getSTFTOverlapLen(opts.DesiredTimeRes,length(window),new_fs);
 overlap_len_original_fs = overlap_len / new_fs * SamplingFrequency;
 
 signal = padarray(signal(:), round(length(window)/2), "symmetric");
+% signal(signal==0) = nan;
+% signal = fillmissing(signal, "nearest");
 % signal = padarray(signal(:), round(length(window)/2), "post");
 
 % stft calculation
